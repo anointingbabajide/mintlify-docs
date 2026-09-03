@@ -14,7 +14,7 @@ These checks run inside **RiskEngine** before any position is opened or increase
 
 ### Leverage Bounds
 
-```
+```text
 leverage = sizeUsd / collateralAmount
 
 minLeverage <= leverage <= maxLeverage
@@ -22,7 +22,7 @@ minLeverage <= leverage <= maxLeverage
 
 Perpetra evaluates both bounds without division to avoid precision loss:
 
-```
+```text
 sizeUsd >= collateralAmount * minLeverage
 collateralAmount * maxLeverage >= sizeUsd
 ```
@@ -40,7 +40,7 @@ collateralAmount * maxLeverage >= sizeUsd
 
 ### Initial Margin
 
-```
+```text
 initialMarginRequired = sizeUsd * initialMarginBps / 10_000
 collateralAmount >= initialMarginRequired
 ```
@@ -60,7 +60,7 @@ This check is independent of the leverage bounds above — both must pass.
 
 Tracked separately per side (long and short):
 
-```
+```text
 newOI = currentOI + sizeUsd        // for a new position
 newOI = currentOI + sizeDelta      // for an increase on an existing position
 
@@ -83,7 +83,7 @@ newOI <= maxShortOpenInterest      // checked for shorts
 
 ### Unrealized PnL
 
-```
+```text
 currentValue = sizeUsd * markPrice / entryPrice
 
 Long:  unrealizedPnl = currentValue - sizeUsd
@@ -103,7 +103,7 @@ Short: unrealizedPnl = sizeUsd - currentValue
 
 ### Effective Collateral
 
-```
+```text
 effectiveCollateral = max(0, collateralAmount + unrealizedPnl)
 ```
 
@@ -120,7 +120,7 @@ Effective collateral floors at zero — your loss can never exceed your deposite
 
 ### Margin Ratio
 
-```
+```text
 marginRatioBps = effectiveCollateral * 10_000 / sizeUsd
 ```
 
@@ -136,7 +136,7 @@ marginRatioBps = effectiveCollateral * 10_000 / sizeUsd
 
 ### Maintenance Margin
 
-```
+```text
 maintenanceMargin = sizeUsd * maintenanceMarginBps / 10_000
 ```
 
@@ -151,7 +151,7 @@ maintenanceMargin = sizeUsd * maintenanceMarginBps / 10_000
 
 ### Liquidation Trigger
 
-```
+```text
 isLiquidatable = effectiveCollateral < maintenanceMargin
 ```
 
@@ -165,7 +165,7 @@ When this condition is true, a keeper can submit a liquidation transaction for y
 
 The mark price at which your isolated position hits the liquidation trigger:
 
-```
+```text
 Long:  liqPrice = entryPrice * (sizeUsd - collateralAmount + maintenanceMargin) / sizeUsd
 Short: liqPrice = entryPrice * (sizeUsd + collateralAmount - maintenanceMargin) / sizeUsd
 ```
@@ -191,7 +191,7 @@ Short: liqPrice = entryPrice * (sizeUsd + collateralAmount - maintenanceMargin) 
 
 For cross-margin, Perpetra evaluates all your open positions in that collateral token together:
 
-```
+```text
 accountEquity = max(0, vaultBalance + sum(unrealizedPnl across all cross positions))
 totalMaintenanceRequired = sum(sizeUsd_i * maintenanceMarginBps_i / 10_000)
 
@@ -217,7 +217,7 @@ isLiquidatable = accountEquity < totalMaintenanceRequired
 
 This is a snapshot estimate that holds all other positions' PnL fixed at their current mark price:
 
-```
+```text
 requiredPnl = (otherMaintenance + targetMaintenance) - vaultBalance - otherPnl
 
 Long:  liqPrice = entryPrice * (requiredPnl + targetSizeUsd) / targetSizeUsd
@@ -247,7 +247,7 @@ Funding is accrued continuously and settled when you open, modify, or close a po
 
 ### Premium and Funding Rate
 
-```
+```text
 premium = (markPrice - indexPrice) / indexPrice
 fundingRate = clamp(premium, -maxFundingRateBps, +maxFundingRateBps)
 ```
@@ -266,7 +266,7 @@ fundingRate = clamp(premium, -maxFundingRateBps, +maxFundingRateBps)
 
 ### Cumulative Funding Index
 
-```
+```text
 indexDelta = fundingRate * timeDelta / fundingInterval
 cumulativeIndex += indexDelta
 ```
@@ -284,7 +284,7 @@ cumulativeIndex += indexDelta
 
 ### Funding Owed by a Position
 
-```
+```text
 rawFunding = sizeUsd * (currentIndex - positionFundingIndex) / RATE_PRECISION
 
 Long:  fundingOwed = rawFunding
@@ -309,7 +309,7 @@ A positive `fundingOwed` means your position owes funding to the other side. A n
 
 ### Trading Fee
 
-```
+```text
 fee = sizeUsd * feeBps / 10_000
 ```
 
@@ -325,7 +325,7 @@ fee = sizeUsd * feeBps / 10_000
 
 ### Liquidation Fee
 
-```
+```text
 fee = sizeUsd * liquidationFeeBps / 10_000
 ```
 
@@ -340,7 +340,7 @@ fee = sizeUsd * liquidationFeeBps / 10_000
 
 ### Fee Distribution Split
 
-```
+```text
 insuranceAmount = pendingFees * insuranceFundBps / 10_000
 treasuryAmount  = pendingFees - insuranceAmount
 ```
@@ -360,13 +360,13 @@ treasuryAmount  = pendingFees - insuranceAmount
 
 When a position is liquidated, effective collateral is calculated first, then split against the keeper fee:
 
-```
+```text
 effectiveCollateral = collateralAmount + unrealizedPnl - fundingOwed
 ```
 
 That value is then split according to three cases:
 
-```
+```text
 Case 1 — effectiveCollateral >= keeperFee:
     keeper receives keeperFee
     remainder is returned to the trader
@@ -395,7 +395,7 @@ Case 3 — effectiveCollateral <= 0:
 
 Slippage is enforced off-chain by the Matcher before a trade is routed to settlement:
 
-```
+```text
 diffBps = |oraclePrice - limitPrice| * 10_000 / limitPrice
 
 reject if diffBps > maxSlippageBps
@@ -418,19 +418,19 @@ Points accrue on both sides of a trade — opening and closing are each counted 
 
 ### Trade Points
 
-```
+```text
 tradePointsEarned = volumeUSD * tradePointsPerUSD / 1e6
 ```
 
 ### Deposit Points
 
-```
+```text
 depositPointsEarned = amountUSD * depositPointsPerUSD / 1e6
 ```
 
 ### Referrer Points
 
-```
+```text
 referrerPointsEarned = baseEarned * referralBps / 10_000
 ```
 

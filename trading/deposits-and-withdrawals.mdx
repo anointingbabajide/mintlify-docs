@@ -1,10 +1,10 @@
 ---
-title: "Depositing and Withdrawing Funds on Perpetra"
+title: "Deposits and Withdrawals on Perpetra: Complete Guide"
 sidebarTitle: "Deposits & Withdrawals"
 description: "Learn what assets you can deposit, how the withdrawal cooldown works, and the three checks every withdrawal must pass before funds are released."
 ---
 
-Moving funds into and out of Perpetra is straightforward, but there are a few mechanics worth understanding before you start — particularly the per-token withdrawal cooldown that activates on every deposit. This page walks you through both flows and explains what happens to your balance behind the scenes.
+Moving funds into and out of Perpetra is straightforward, but there are a few mechanics worth understanding before you start — particularly the per-token withdrawal cooldown that activates on every deposit. This page walks you through both flows and explains what happens to your balance along the way.
 
 ## What You Can Deposit
 
@@ -66,12 +66,16 @@ When you submit a withdrawal request, the platform checks three conditions befor
 
 If all three checks pass, the funds are sent to your wallet immediately.
 
-## Fees and Internal Balance Movements
+## Checking Your Balance
 
-Not every balance change in your account represents a deposit or withdrawal of tokens. Trading fees, for instance, are deducted from your account balance and routed to the Insurance Fund and Treasury as **internal bookkeeping entries** — no token actually leaves the platform until those fees are periodically distributed. Similarly, liquidation fees are credited internally to the keeper who performed the liquidation rather than flowing out as a withdrawal.
+Your current balance for any token — along with whether that token is supported and whether it is approved as collateral — is always available to query in the app. This lets you confirm your available balance and collateral eligibility before placing trades or requesting a withdrawal.
+
+## Fees and Balance Movements
+
+Not every balance change in your account represents a deposit or withdrawal of tokens. Trading fees are deducted from your account balance and routed to the Insurance Fund and Treasury as bookkeeping entries — no token actually leaves the platform until those fees are periodically distributed. Similarly, liquidation fees are credited to the keeper who performed the liquidation rather than flowing out as a withdrawal.
 
 <Tip>
-  Think of your Perpetra balance as an account ledger. Deposits and withdrawals move tokens across the platform boundary; everything else — fees, funding payments, P&L — is an internal entry that updates your ledger without a corresponding on-chain transfer at that moment.
+  Think of your Perpetra balance as an account ledger. Deposits and withdrawals move tokens across the platform boundary; everything else — fees, funding payments, P&L — is an entry that updates your ledger without a corresponding on-chain transfer at that moment.
 </Tip>
 
 See [Fees](/trading/fees) for a full breakdown of how trading and liquidation fees are calculated and distributed.

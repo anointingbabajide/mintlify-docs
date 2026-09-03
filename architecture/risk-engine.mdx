@@ -25,12 +25,25 @@ These checks run in sequence and are independent — passing one doesn't excuse 
 
 <AccordionGroup>
   <Accordion title="Initial margin requirement">
-    You must post enough collateral relative to the position size you're opening. The required amount is set by the market's **initial margin ratio** — the minimum fraction of the notional value that must be covered by collateral before the position is created. If your collateral falls short of this threshold, the trade is rejected.
+    You must post enough collateral relative to the position size you're opening. The required amount is calculated as:
+
+    ```
+    initialMarginRequired = sizeUsd * initialMarginBps / 10_000
+    collateralAmount >= initialMarginRequired
+    ```
+
+    `initialMarginBps` is the market's configured minimum margin fraction (out of 10,000). If your collateral falls short of this threshold, the trade is rejected.
 
     **What this means for you:** Make sure you have sufficient USDC in your account for the leverage you're requesting. The interface shows your required margin before you confirm.
   </Accordion>
   <Accordion title="Leverage bounds">
-    Every market has both a minimum and a maximum allowed leverage. Your requested leverage must fall within that range — too low (below the minimum) or too high (above the maximum) both result in rejection. Perpetra supports up to 50× leverage, but the limit for a specific market may be lower.
+    Every market has both a minimum and a maximum allowed leverage. Your effective leverage is `sizeUsd / collateralAmount` — both a minimum and a maximum are enforced:
+
+    ```
+    minLeverage <= sizeUsd / collateralAmount <= maxLeverage
+    ```
+
+    Perpetra supports up to 50× leverage, but the limit for a specific market may be lower. Too low (below the minimum) or too high (above the maximum) both result in rejection.
 
     **What this means for you:** If your order is rejected for leverage, adjust your position size or collateral to bring your effective leverage within the allowed range for that market.
   </Accordion>

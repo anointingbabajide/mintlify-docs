@@ -1,5 +1,5 @@
 ---
-title: "Understanding Funding Rates on Perpetra"
+title: "Perpetra Funding Rate: Formula, Accrual, and Settlement"
 sidebarTitle: "Funding Rate"
 description: "Learn what funding rates are, how they keep perpetual prices anchored to spot, and how to calculate what you owe or earn as a trader."
 ---
@@ -21,13 +21,13 @@ Perpetra's perpetual price is determined by its own order book, which can move i
 
 The funding rate starts with the **premium** — the relative distance between the mark price (Perpetra's perpetual price) and the index price (the spot reference):
 
-```
+```text
 premium = (markPrice - indexPrice) / indexPrice
 ```
 
 That premium is then clamped to the market's configured maximum, so no single tick can impose an extreme charge:
 
-```
+```text
 fundingRate = clamp(premium, -maxFundingRateBps, +maxFundingRateBps)
 ```
 
@@ -39,9 +39,9 @@ fundingRate = clamp(premium, -maxFundingRateBps, +maxFundingRateBps)
 
 Suppose BTC-USDC has a mark price of $65,300 and an index price of $65,000, with a max funding rate of 10 bps:
 
-```
-premium = (65,300 - 65,000) / 65,000 ≈ 0.00461  (≈ 4.61 bps)
-fundingRate = clamp(4.61 bps, -10 bps, +10 bps) = +4.61 bps
+```text
+premium      = (65,300 - 65,000) / 65,000 ≈ 0.00461  (≈ 4.61 bps)
+fundingRate  = clamp(4.61 bps, -10 bps, +10 bps) = +4.61 bps
 ```
 
 The rate is positive, so longs pay shorts at roughly 4.61 bps this interval.
@@ -54,9 +54,9 @@ On each tick, the contract:
 
 1. Fetches fresh mark and index prices from the Oracle.
 2. Computes the new funding rate using the formula above.
-3. Advances a per-market cumulative index:
+3. Advances a per-market cumulative funding index:
 
-```
+```text
 indexDelta      = fundingRate * timeDelta / fundingInterval
 cumulativeIndex += indexDelta
 ```
@@ -69,14 +69,14 @@ cumulativeIndex += indexDelta
 
 ## How Your Position Settles Funding
 
-Every position stores a snapshot of the cumulative index from the moment it was last settled (`positionFundingIndex`). Perpetra's Engine calls `calcFundingOwed` on any position event and computes:
+Every position stores a snapshot of the cumulative index from the moment it was last settled. When any position event occurs, the protocol computes the funding owed since the last settlement:
 
-```
-rawFunding = sizeUsd * (currentIndex - positionFundingIndex) / RATE_PRECISION
+```text
+rawFunding = sizeUsd * (currentIndex - lastSettledIndex) / PRECISION
 ```
 
-- **Long positions:** `fundingOwed = rawFunding`. A positive value means you owe funding; it is deducted from your collateral.
-- **Short positions:** `fundingOwed = -rawFunding`. When longs are paying, shorts receive the equivalent credit.
+- **Long positions:** A positive `rawFunding` means you owe funding; it is deducted from your collateral.
+- **Short positions:** The sign is flipped. When longs are paying, shorts receive the equivalent credit.
 
 After settlement the position's snapshot advances to the current index, so the next calculation only counts funding accrued since that moment.
 
@@ -88,7 +88,7 @@ Two read helpers are available for display purposes:
   <Accordion title="getCurrentRate(marketId)">
     Returns the current funding rate in three forms:
 
-    - `rate` — raw signed value scaled to `RATE_PRECISION` (1e18)
+    - `rate` — raw signed value
     - `rateBps` — the same rate expressed in basis points
     - `isLongPaying` — `true` when the rate is positive (longs pay shorts)
   </Accordion>
@@ -97,7 +97,7 @@ Two read helpers are available for display purposes:
   </Accordion>
 </AccordionGroup>
 
-The frontend also uses `estimateFundingOwed` as a read-only call to show you an "estimated funding" figure for an open position without actually settling anything on-chain.
+The frontend also uses a read-only estimate helper to show you a projected "estimated funding" figure for an open position without actually settling anything on-chain.
 
 <Tip>
   Before entering a large position, check the current funding rate and direction for that market. A persistently positive rate means longs are paying continuously — over several funding intervals this cost can meaningfully erode your collateral, even if the price moves in your favour. Factoring in the expected funding cost is especially important for positions you plan to hold for hours or days.

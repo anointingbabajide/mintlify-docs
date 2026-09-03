@@ -8,11 +8,11 @@ Perpetra keeps a running tally of activity for every user: points earned through
 
 ## How points are earned
 
-Points accrue from two types of activity: trading and depositing. Both are tracked in terms of their USD value, multiplied by a configured rate.
+Points accrue from two types of activity: trading and depositing. Both are tracked in terms of their USD value, multiplied by a configured rate and divided by `1e6` (the precision factor used by the PointsSystem contract):
 
 ```
-tradingPoints  = tradeVolumeUSD  × tradePointsPerUSD
-depositPoints  = depositAmountUSD × depositPointsPerUSD
+tradePointsEarned   = volumeUSD * tradePointsPerUSD / 1e6
+depositPointsEarned = amountUSD * depositPointsPerUSD / 1e6
 ```
 
 Both rates are configurable and may be adjusted as the program evolves. The rates that apply to your activity are the rates in effect at the time that activity occurs.
@@ -42,7 +42,13 @@ flowchart LR
 
 ### What your referrer earns
 
-Your referrer earns a percentage of the points you earn. The share rate is set by the platform and may be adjusted over time. Your own points total is not reduced by the referrer's share — both of you earn from your activity independently.
+Your referrer earns a percentage of the points you earn, calculated as:
+
+```
+referrerPointsEarned = baseEarned * referralBps / 10_000
+```
+
+where `baseEarned` is the points you just earned from a trade or deposit, and `referralBps` is the platform-configured referral share rate (out of 10,000). The share rate may be adjusted over time. Your own points total is not reduced by the referrer's share — both of you earn from your activity independently.
 
 <Info>
   The referrer's share is calculated on the same trade and deposit events that earn you points. Both amounts are written to the PointsSystem contract in the same transaction that records your activity.
@@ -60,10 +66,10 @@ Right now, points are a **scoreboard only**. Your total point balance and referr
 
 <CardGroup cols={2}>
   <Card title="Trading Points" icon="chart-bar">
-    Earned on both the open and close of every trade. Calculated as `tradeVolumeUSD × tradePointsPerUSD`.
+    Earned on both the open and close of every trade. Calculated as `volumeUSD * tradePointsPerUSD / 1e6`.
   </Card>
   <Card title="Deposit Points" icon="arrow-down-to-bracket">
-    Earned when you deposit collateral. Calculated as `depositAmountUSD × depositPointsPerUSD`.
+    Earned when you deposit collateral. Calculated as `amountUSD * depositPointsPerUSD / 1e6`.
   </Card>
   <Card title="Referral Share" icon="users">
     Your referrer earns an ongoing share of every point you earn from trading and depositing — for as long as you're active.

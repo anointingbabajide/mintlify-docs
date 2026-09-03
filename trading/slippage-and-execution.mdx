@@ -14,7 +14,7 @@ Because Perpetra uses off-chain order matching with on-chain settlement, there i
 
 At the moment of matching, Perpetra's off-chain engine runs this check:
 
-```
+```text
 diffBps = |oraclePrice - limitPrice| * 10_000 / limitPrice
 ```
 
@@ -50,17 +50,19 @@ If the slippage check fails, your order is **not executed**. No gas is spent, no
 
 ## Setting your slippage tolerance
 
-<Accordion title="Tight tolerance (e.g. 10–25 bps)">
-  Best when you have a precise entry price in mind and would rather miss the trade than execute materially off-target. More likely to result in a rejected match during volatile or fast-moving conditions. Use this when the exact price matters more than getting filled.
-</Accordion>
+<AccordionGroup>
+  <Accordion title="Tight tolerance (e.g. 10–25 bps)">
+    Best when you have a precise entry price in mind and would rather miss the trade than execute materially off-target. More likely to result in a rejected match during volatile or fast-moving conditions. Use this when the exact price matters more than getting filled.
+  </Accordion>
 
-<Accordion title="Moderate tolerance (e.g. 50–100 bps)">
-  A reasonable default for most market conditions. Gives the matching engine enough room to work with normal oracle fluctuations without exposing you to large adverse moves. Suitable for most limit order placements in liquid markets.
-</Accordion>
+  <Accordion title="Moderate tolerance (e.g. 50–100 bps)">
+    A reasonable default for most market conditions. Gives the matching engine enough room to work with normal oracle fluctuations without exposing you to large adverse moves. Suitable for most limit order placements in liquid markets.
+  </Accordion>
 
-<Accordion title="Wide tolerance (e.g. 100+ bps)">
-  Maximizes your chance of getting filled, even when the oracle is moving quickly. Appropriate when execution certainty matters more than price precision — for example, when using market orders in volatile conditions or exiting a position urgently. Accept that you may fill at a price further from your target.
-</Accordion>
+  <Accordion title="Wide tolerance (e.g. 100+ bps)">
+    Maximizes your chance of getting filled, even when the oracle is moving quickly. Appropriate when execution certainty matters more than price precision — for example, when using market orders in volatile conditions or exiting a position urgently. Accept that you may fill at a price further from your target.
+  </Accordion>
+</AccordionGroup>
 
 <Tip>
   In fast-moving markets, tightening your slippage tolerance can result in repeated rejections that leave you on the sideline. If you need to execute quickly — for example, to reduce exposure during a sharp move — consider widening your tolerance or using a market order, and accept that some price uncertainty is the trade-off for higher fill probability.
