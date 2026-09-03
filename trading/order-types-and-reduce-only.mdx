@@ -1,0 +1,58 @@
+---
+title: "Market, Limit, and Reduce-Only Order Types on Perpetra"
+sidebarTitle: "Order Types"
+description: "Understand market orders, limit orders, and how Perpetra's reduce-only flag prevents a close order from accidentally flipping your position."
+---
+
+Perpetra gives you three tabs in the order panel: **Market**, **Limit**, and **TP/SL**. Understanding the difference helps you choose the right tool for your strategy. Perpetra also applies a **reduce-only** flag automatically to any order that closes a position, protecting you from unintended side effects at execution time.
+
+## Comparing order types
+
+| Feature | Market order | Limit order |
+|---|---|---|
+| When it fills | Immediately | When the book reaches your price |
+| Price certainty | No — fills at best available | Yes — fills at your price or better |
+| Fee applied | Taker fee | Maker fee |
+| Rests on the book | No | Yes, until filled or cancelled |
+| Best for | Fast execution | Price-specific entries and exits |
+
+## Market orders
+
+A market order fills immediately against the best available price on the opposite side of the order book. Use a market order when you want to enter or exit a trade right now and are comfortable with the current market price.
+
+Because a large market order can consume multiple price levels if the best price doesn't have enough resting size to fill your full order, your actual fill price is a notional-weighted average across every price level the order touches — not a single fixed number. Perpetra bounds how far that average can drift from the best price. See [Slippage & Execution](/trading/slippage-and-execution) for how those limits work.
+
+## Limit orders
+
+A limit order rests on the book at your chosen price until a counterparty fills it, or you cancel it. Your limit price is a guarantee on the direction of your fill price, not just a target:
+
+- **Long limit:** your price is a ceiling. You will never pay more than your limit price, though you may pay less if the market moves in your favor before the order fills.
+- **Short limit:** your price is a floor. You will never receive less than your limit price, though you may receive more.
+
+If no counterparty ever matches your price, the order sits open in the **Open Orders** panel until you cancel it. You can cancel a resting order at any time from that panel at no cost.
+
+<Tip>
+  Limit orders pay the **maker fee**, which is always less than or equal to the
+  taker fee. If you're not in a hurry, using limit orders is an easy way to
+  reduce your trading costs.
+</Tip>
+
+## TP/SL orders
+
+The **TP/SL** tab is visible in the order panel, but take-profit and stop-loss orders are not yet functional. This feature is on the roadmap.
+
+## Reduce-only orders
+
+A reduce-only order can only close or shrink an existing position. It can never open new exposure or flip you to the opposite side, even if the fill size would exceed your current position.
+
+You do not set this flag yourself. Perpetra applies it automatically whenever you close a position from the **Positions** panel — so a close action is always safe by design.
+
+<Note>
+  **Example:** You are long $10,000 of BTC. You close the full position from the
+  Positions panel. Perpetra submits a reduce-only sell order for $10,000.
+  Because the order is reduce-only, it can close your long to flat but cannot
+  create a new short position — even if the order somehow exceeded your position
+  size. You always end up at zero, never on the wrong side.
+</Note>
+
+Reduce-only protection means you never need to worry that a close action leaves you accidentally short when you intended to exit, or vice versa. The flag is enforced at the contract level, not just the UI.

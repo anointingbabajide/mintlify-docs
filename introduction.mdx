@@ -1,0 +1,52 @@
+---
+title: "Welcome to Perpetra — Decentralized Perpetuals on Hedera"
+sidebarTitle: "Introduction"
+description: "Perpetra is a decentralized perpetuals DEX on Hedera. Trade with up to 50x leverage using a hybrid off-chain orderbook and on-chain settlement."
+---
+
+Welcome to Perpetra — a decentralized perpetuals exchange built on Hedera. You can open leveraged long or short positions on 13 markets with no expiry, no custody risk, and no gas spent just to place an order. Orders are matched off-chain for speed, then settled on-chain so your collateral and position state always live on Hedera.
+
+<CardGroup cols={2}>
+  <Card title="How It Works" icon="bolt" href="/get-started/how-it-works">
+    Understand the hybrid model — how your order goes from a signed message to a live on-chain position.
+  </Card>
+  <Card title="Connect Your Wallet" icon="wallet" href="/get-started/wallets">
+    Get set up with HashPack or WalletConnect and learn what EIP-712 signing means for you.
+  </Card>
+  <Card title="Place Your First Order" icon="chart-line" href="/trading/placing-orders">
+    Open a position, set leverage, and manage your margin from the trading interface.
+  </Card>
+  <Card title="Protocol Architecture" icon="code" href="/architecture/overview">
+    Explore how Perpetra's contracts, matching engine, and keepers fit together under the hood.
+  </Card>
+</CardGroup>
+
+## Get started in four steps
+
+<Steps>
+  <Step title="Connect your wallet">
+    Connect HashPack or any WalletConnect-compatible wallet to Perpetra. No special permissions are granted at this stage — you're just identifying yourself. See [Wallets](/get-started/wallets) for setup details.
+  </Step>
+  <Step title="Deposit USDC">
+    All collateral on Perpetra is USDC-quoted. Deposit USDC from your wallet into your Perpetra account to fund your trades. Your funds stay on-chain and under your control.
+  </Step>
+  <Step title="Choose a market">
+    Browse 13 available markets — including HBAR-USDC, BTC-USDC, ETH-USDC, and 10 Hedera Token Service (HTS) markets. See the full list in [Supported Markets](/get-started/supported-markets).
+  </Step>
+  <Step title="Place your first order">
+    Submit a limit or market order with up to 50x leverage. Your wallet signs the order gaslessly with EIP-712 — no transaction fee until your order actually matches and settles. Head to [Placing Orders](/trading/placing-orders) to learn the full order flow.
+  </Step>
+</Steps>
+
+## What makes Perpetra different
+
+Most on-chain perpetuals protocols route every trade through a shared liquidity pool. Perpetra takes a different approach, separating the speed of off-chain matching from the security of on-chain settlement.
+
+<CardGroup cols={2}>
+  <Card title="Off-chain matching" icon="bolt">
+    Orders are signed with EIP-712 and matched by Perpetra's off-chain matching engine. Price discovery works like a traditional orderbook — real bids and asks — so you get tighter spreads and true limit-order behavior without paying gas on every submission.
+  </Card>
+  <Card title="On-chain settlement" icon="link">
+    Once a match occurs, settlement happens entirely on Hedera's EVM. Collateral movement, position updates, and PnL are all recorded on-chain through Perpetra's smart contracts. Your custody never depends on the off-chain engine staying up.
+  </Card>
+</CardGroup>

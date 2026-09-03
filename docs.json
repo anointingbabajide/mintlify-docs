@@ -1,72 +1,78 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mintlify Starter Kit",
+  "name": "Perpetra",
+  "theme": "luma",
+  "favicon": "https://media.brand.dev/39bc3793-d291-4b56-b9bd-aededa4f3cfa.png",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
-  },
-  "favicon": "/favicon.svg",
-  "navigation": {
-    "pages": [
-      {
-        "group": "Getting Started",
-        "pages": [
-          "index",
-          "quickstart"
-        ]
-      }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "primary": "#1a6e86",
+    "light": "#383e7c",
+    "dark": "#81b4d3"
   },
   "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
+      "label": "Launch App",
+      "href": "https://perpetra.xyz"
     }
   },
-  "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "get-started/how-it-works",
+              "get-started/wallets",
+              "get-started/supported-markets"
+            ]
+          },
+          {
+            "group": "Trading Guide",
+            "pages": [
+              "trading/placing-orders",
+              "trading/order-types-and-reduce-only",
+              "trading/margin-modes",
+              "trading/positions-and-margin",
+              "trading/pnl-and-liquidation",
+              "trading/funding-rate",
+              "trading/fees",
+              "trading/deposits-and-withdrawals"
+            ]
+          },
+          {
+            "group": "Execution & Pricing",
+            "pages": [
+              "trading/mark-price-and-index-price",
+              "trading/slippage-and-execution"
+            ]
+          },
+          {
+            "group": "Protocol Architecture",
+            "pages": [
+              "architecture/overview",
+              "architecture/contract-map",
+              "architecture/order-lifecycle",
+              "architecture/order-signing-eip712",
+              "architecture/off-chain-matching-engine",
+              "architecture/risk-engine",
+              "architecture/keeper-system",
+              "architecture/liquidation-engine",
+              "architecture/points"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "reference/formula-reference",
+              "reference/contract-addresses",
+              "reference/glossary"
+            ]
+          }
+        ]
+      }
     ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
   }
 }

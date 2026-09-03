@@ -1,0 +1,54 @@
+---
+title: "How Perpetra Works: Hybrid Off-Chain and On-Chain Trading"
+sidebarTitle: "How It Works"
+description: "Learn how Perpetra's hybrid model takes your order from a gasless EIP-712 signature to a fully settled on-chain position in four steps."
+---
+
+Perpetra combines an off-chain orderbook with on-chain settlement. This page walks you through what that means end-to-end — from the moment you submit an order to the moment your position is live and tracked on Hedera.
+
+## The hybrid model, step by step
+
+<Steps>
+  <Step title="You sign an order — not send a transaction">
+    Placing an order on Perpetra doesn't cost gas and isn't a blockchain transaction. Instead, your wallet signs an [EIP-712](https://eips.ethereum.org/EIPS/eip-712) typed message that describes your order: market, side, size, price, and leverage. The signature cryptographically proves the order came from you without broadcasting anything on-chain. Until your order fills, nothing moves.
+  </Step>
+  <Step title="The matching engine looks for a counterparty">
+    Your signed order is sent to Perpetra's off-chain matching engine, which holds the live orderbook in memory. The engine compares incoming orders against resting orders on the opposite side and looks for a price match — the same way a centralized exchange's order book works, except the orders are already signed and ready to settle.
+  </Step>
+  <Step title="A match triggers on-chain settlement">
+    Once two orders match, the matching engine hands the fill to Perpetra's smart contracts for settlement. A transaction is submitted on-chain, where the contracts validate the match, move collateral, and update both traders' positions. This is the only point at which gas is spent — and it's paid by the settlement keeper, not by you.
+  </Step>
+  <Step title="Your position is live on-chain">
+    From this point, your position — size, entry price, collateral, and accrued funding — lives in Perpetra's on-chain position registry. Nothing about your custody or final position state depends on the off-chain matching engine. If the engine went offline after your order filled, your position would still exist exactly as recorded on Hedera.
+  </Step>
+</Steps>
+
+<Note>
+  Perpetra supports both **limit orders**, which rest on the book at your specified price until filled, and **market orders**, which match immediately against the best available price on the opposite side.
+</Note>
+
+## Why not a pooled-liquidity model?
+
+Pool-based perpetuals (like GMX) let traders take the opposite side of a shared liquidity vault, with price derived from an oracle rather than from real orderbook activity. That model bootstraps more easily because it doesn't need counterparty depth, but it comes with tradeoffs:
+
+- Every trader is effectively trading against the pool, not against other traders
+- Pricing follows the oracle feed rather than real bid/ask activity
+- Limit orders can't behave like limit orders, because there's no book to rest on
+
+Perpetra's orderbook model means prices reflect actual resting orders, other traders are on the other side of your trade, and limit orders work exactly as you'd expect — they sit at your price until filled.
+
+The tradeoff is that an orderbook needs depth to deliver tight spreads and reliable fills. That's why Perpetra runs market-making keepers to keep the book populated — you can read more about that in [Protocol Architecture](/architecture/overview).
+
+## Keeping prices honest
+
+Because matching happens off-chain, Perpetra needs guardrails to ensure the price you trade at stays anchored to the real market. Two mechanisms handle this:
+
+- **Mark price:** A smoothed reference price — the index price plus an EMA-adjusted basis premium — used for PnL calculations and liquidation checks. This prevents a single stale or manipulated orderbook print from triggering an unfair liquidation. See [Mark Price & Index Price](/trading/mark-price-and-index-price).
+- **Funding rate:** A periodic payment exchanged between longs and shorts that pulls the perpetual price back toward spot whenever they diverge. If longs outnumber shorts and the perp is trading above index, longs pay shorts — and vice versa. See [Funding Rate](/trading/funding-rate).
+
+Together, mark price and funding rate ensure the orderbook price stays honest relative to the underlying asset, even though order matching itself happens off-chain.
+
+## What's next
+
+- Ready to trade? Start with [Placing Orders](/trading/placing-orders).
+- Want the contract-level view of this same flow? See [Order Lifecycle](/architecture/order-lifecycle) in Protocol Architecture.

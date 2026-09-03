@@ -1,0 +1,256 @@
+---
+title: "Perpetra Glossary: Key Trading Terms Explained"
+sidebarTitle: "Glossary"
+description: "Plain-English definitions of every key term you'll encounter on Perpetra — from collateral and leverage to funding rates and liquidation prices."
+---
+
+Whether you are new to perpetuals or just unfamiliar with how Perpetra's hybrid model works, this glossary defines every term you will encounter on the platform. Terms are listed in alphabetical order. Click any term to expand its definition.
+
+---
+
+## A – C
+
+<Accordion title="Collateral">
+  Collateral is the USDC you deposit to back an open position. It acts as the security deposit that absorbs losses if the market moves against you. On Perpetra, all collateral is denominated in USDC regardless of which market you are trading. If your collateral (adjusted for unrealized PnL) falls below the maintenance margin threshold, your position becomes eligible for liquidation.
+</Accordion>
+
+<Accordion title="Cross Margin">
+  Cross margin is a margin mode where your entire USDC vault balance is shared across all of your open cross-margin positions. Profits from one position help absorb losses in another, which can keep positions alive longer during drawdowns. The trade-off is that a large loss on one position can reduce the margin available to all others, potentially triggering account-level liquidation. See also: **Isolated Margin**.
+</Accordion>
+
+---
+
+## E
+
+<Accordion title="Effective Collateral">
+  Effective collateral is the value of your margin after adding unrealized PnL. The formula is:
+
+  ```
+  effectiveCollateral = max(0, collateralAmount + unrealizedPnl)
+  ```
+
+  When your position is in profit, effective collateral is higher than your deposited amount. When your position is at a loss, effective collateral is reduced — and it can never go below zero. The protocol compares effective collateral against the maintenance margin to decide whether your position is liquidatable.
+</Accordion>
+
+<Accordion title="EIP-712">
+  EIP-712 is the Ethereum standard for typed, structured message signing. Perpetra uses EIP-712 so that you can authorize orders by signing a human-readable message in your wallet (HashPack or WalletConnect) rather than submitting a gas-paying transaction. This makes order placement gasless — you pay no network fee to submit an order to the book, only to settle trades on-chain. The `OrderValidator` contract verifies these signatures before any order is executed.
+</Accordion>
+
+<Accordion title="Entry Price">
+  Entry price is the mark price at which your position was originally matched and opened. It is recorded on-chain at settlement and is used as the baseline for all PnL calculations. For a long position, you profit when the current mark price is above your entry price; for a short, you profit when it is below.
+</Accordion>
+
+---
+
+## F
+
+<Accordion title="Funding Rate">
+  The funding rate is a periodic payment exchanged between long and short position holders. Its purpose is to anchor the perpetual contract's mark price to the spot index price. When the mark price trades above the index (positive premium), longs pay shorts. When the mark price trades below the index (negative premium), shorts pay longs. On Perpetra, the funding rate is computed by the `FundingManager` contract as:
+
+  ```
+  premium    = (markPrice - indexPrice) / indexPrice
+  fundingRate = clamp(premium, -maxFundingRateBps, +maxFundingRateBps)
+  ```
+
+  Funding accrues continuously and is settled whenever you open, modify, or close a position.
+</Accordion>
+
+---
+
+## I
+
+<Accordion title="Index Price">
+  The index price is the raw oracle price that represents the spot market value of an asset. Perpetra aggregates index prices from multiple sources — Supra, Chainlink, and SaucerSwap TWAP for HTS markets — through the `PerpetraOracle` contract. The index price is the reference used to compute the funding premium and to anchor the mark price.
+</Accordion>
+
+<Accordion title="Initial Margin">
+  Initial margin is the minimum amount of collateral you must deposit to open a position of a given size. It is expressed as a percentage of the notional position value and varies per market. The formula is:
+
+  ```
+  initialMarginRequired = sizeUsd * initialMarginBps / 10_000
+  collateralAmount >= initialMarginRequired
+  ```
+
+  Initial margin is always higher than maintenance margin — it provides a safety buffer so that your position has room to absorb losses before reaching the liquidation threshold.
+</Accordion>
+
+<Accordion title="Isolated Margin">
+  Isolated margin is a margin mode where each position has its own dedicated collateral pool. The maximum you can lose on a position in isolated mode is the collateral you have assigned to it — losses cannot spill over to affect your other positions or your vault balance. You can add or remove collateral from an isolated position at any time to adjust your liquidation price. See also: **Cross Margin**.
+</Accordion>
+
+---
+
+## K
+
+<Accordion title="Keeper">
+  A keeper is an authorized off-chain bot registered in the `KeeperRegistry` contract. Keepers are responsible for submitting matched orders to the `Router` for on-chain settlement and for triggering liquidations when a position becomes eligible. Keepers earn a fee for each successful liquidation they process. Users do not interact with keepers directly — they operate automatically in the background.
+</Accordion>
+
+---
+
+## L
+
+<Accordion title="Leverage">
+  Leverage is the ratio of your position's notional value to the collateral you have deposited. At 10× leverage, a 1% move in the mark price produces a 10% gain or loss on your collateral. Perpetra supports leverage between 1× and 50× depending on the market. Higher leverage magnifies both profits and losses, and places your liquidation price closer to your entry price.
+
+  ```
+  leverage = sizeUsd / collateralAmount
+  ```
+</Accordion>
+
+<Accordion title="Limit Order">
+  A limit order is an order that rests on the off-chain order book at the price you specify. It will only match when the market reaches your price. Limit orders are eligible for the maker fee rate, which is lower than the taker rate. You sign a limit order with EIP-712 — no gas is spent until the order matches and settles on-chain.
+</Accordion>
+
+<Accordion title="Liquidation">
+  Liquidation is the forced closure of your position by a keeper when your effective collateral falls below the maintenance margin threshold. Once liquidated, your position is closed at the current mark price, funding owed is deducted, and any remaining collateral (after the keeper fee) is returned to you. If your effective collateral is insufficient to cover the keeper fee, the Insurance Fund covers the shortfall.
+</Accordion>
+
+<Accordion title="Liquidation Price">
+  The liquidation price is the mark price at which your position would reach the liquidation trigger — that is, where effective collateral equals maintenance margin. For isolated positions, Perpetra calculates it as:
+
+  ```
+  Long:  liqPrice = entryPrice * (sizeUsd - collateralAmount + maintenanceMargin) / sizeUsd
+  Short: liqPrice = entryPrice * (sizeUsd + collateralAmount - maintenanceMargin) / sizeUsd
+  ```
+
+  Adding collateral to your position moves the liquidation price further away from your entry price. For cross-margin positions, the liquidation price is a snapshot estimate that depends on the state of all other open cross positions.
+</Accordion>
+
+<Accordion title="Long">
+  A long is a position that profits when the asset price rises. When you go long, you are effectively buying exposure to an asset with leverage. Your unrealized PnL increases as the mark price rises above your entry price and decreases as it falls below.
+</Accordion>
+
+---
+
+## M
+
+<Accordion title="Maintenance Margin">
+  Maintenance margin is the minimum effective collateral required to keep a position open. It is lower than the initial margin and is expressed as a percentage of the notional position size:
+
+  ```
+  maintenanceMargin = sizeUsd * maintenanceMarginBps / 10_000
+  ```
+
+  When your effective collateral drops below this level, your position becomes liquidatable. The exact rate (`maintenanceMarginBps`) is set per market in the `MarketRegistry`.
+</Accordion>
+
+<Accordion title="Maker Fee / Taker Fee">
+  Perpetra charges two different fee rates depending on how your order interacts with the book. The **maker fee** applies to limit orders that add liquidity to the book — they are filled at rest. The **taker fee** applies to market orders (and limit orders that cross the spread and fill immediately) — they remove liquidity. The maker rate is lower than the taker rate to incentivize limit order placement. Both fees are calculated as:
+
+  ```
+  fee = sizeUsd * feeBps / 10_000
+  ```
+</Accordion>
+
+<Accordion title="Margin Ratio">
+  The margin ratio is a real-time measure of how well-collateralized your position is. It is expressed in basis points:
+
+  ```
+  marginRatioBps = effectiveCollateral * 10_000 / sizeUsd
+  ```
+
+  A higher margin ratio means your position has more cushion before reaching the liquidation threshold. When the margin ratio falls to `maintenanceMarginBps`, your position is eligible for liquidation.
+</Accordion>
+
+<Accordion title="Mark Price">
+  The mark price is a smoothed reference price derived from oracle feeds by the `PerpetraOracle` contract. It is the price used for all PnL calculations, margin ratio checks, and liquidation triggers — not the last-traded price. Using a mark price (rather than the live trade price) prevents manipulation through short-lived price spikes that could trigger artificial liquidations.
+</Accordion>
+
+<Accordion title="Market Order">
+  A market order is an order that fills immediately at the best available price in the book. Market orders are matched off-chain by the Perpetra Matcher and settled on-chain by a keeper. They are subject to the taker fee rate and to slippage tolerance — if the oracle price at the time of matching deviates too far from your submitted price, the order is rejected.
+</Accordion>
+
+---
+
+## O
+
+<Accordion title="Open Interest">
+  Open interest is the total notional USD value of all currently open positions on a given side of a market. Perpetra tracks long open interest and short open interest separately. Each market has a cap (`maxLongOpenInterest` and `maxShortOpenInterest`); new positions that would push either side over its cap are rejected. Open interest is a useful indicator of overall market participation and directional bias.
+</Accordion>
+
+---
+
+## P
+
+<Accordion title="Perpetual / Perp">
+  A perpetual contract (or "perp") is a derivative that lets you trade the price of an asset with leverage, without ever taking physical delivery of that asset. Unlike a dated futures contract, a perpetual has no expiry date — you can hold it indefinitely as long as your margin stays above the maintenance threshold. The funding rate mechanism keeps the perpetual's price anchored to the underlying spot price.
+</Accordion>
+
+<Accordion title="PnL (Profit and Loss)">
+  PnL is the profit or loss on a position, measured in USDC. Perpetra distinguishes between **unrealized PnL** (paper gain or loss on an open position) and **realized PnL** (the amount settled to your vault when you close). On the trading interface, the PnL figure shown is unrealized and updates continuously as the mark price moves.
+</Accordion>
+
+<Accordion title="Points">
+  Points are Perpetra's activity-based scoring system. You earn trade points for every USD of volume you generate (both opening and closing count separately) and deposit points for USDC you add to your vault. If you were referred by another user, your activity also earns bonus points for your referrer. Points track your cumulative contribution to the protocol and are intended to be used for future reward distributions.
+
+  ```
+  tradePointsEarned   = volumeUSD * tradePointsPerUSD / 1e6
+  depositPointsEarned = amountUSD * depositPointsPerUSD / 1e6
+  referrerPointsEarned = baseEarned * referralBps / 10_000
+  ```
+</Accordion>
+
+<Accordion title="Position Size">
+  Position size (also called notional value or `sizeUsd`) is the total USD value of your leveraged exposure. It equals your collateral multiplied by your chosen leverage:
+
+  ```
+  sizeUsd = collateralAmount * leverage
+  ```
+
+  Fees, funding, and PnL are all calculated relative to position size — not relative to your collateral alone. A larger position size means larger absolute dollar gains and losses for the same percentage price move.
+</Accordion>
+
+<Accordion title="Premium">
+  The premium is the percentage difference between the mark price and the index price. It measures how far the perpetual market is trading away from spot:
+
+  ```
+  premium = (markPrice - indexPrice) / indexPrice
+  ```
+
+  A positive premium means the perpetual is trading above spot (longs pay funding). A negative premium means the perpetual is trading below spot (shorts pay funding). The funding rate is derived directly from the premium, clamped to `maxFundingRateBps`.
+</Accordion>
+
+---
+
+## R
+
+<Accordion title="Reduce-Only">
+  A reduce-only flag on an order tells the protocol that this order should only decrease your existing position — never open or increase a position in the opposite direction. For example, if you are long 1 BTC-USDC and you place a reduce-only sell order for 1 BTC-USDC, it will close your long. If you accidentally over-fill (trying to close more than you have open), the excess quantity is cancelled rather than opening a short.
+</Accordion>
+
+---
+
+## S
+
+<Accordion title="Short">
+  A short is a position that profits when the asset price falls. When you go short, you are selling exposure to an asset. Your unrealized PnL increases as the mark price falls below your entry price and decreases as it rises above. Shorting a perpetual does not require borrowing the underlying asset — the contract is purely synthetic.
+</Accordion>
+
+<Accordion title="Slippage Tolerance">
+  Slippage tolerance is the maximum acceptable deviation between the oracle price at the time of matching and the price embedded in your signed order. The Perpetra Matcher enforces this off-chain before routing your trade to settlement:
+
+  ```
+  diffBps = |oraclePrice - limitPrice| * 10_000 / limitPrice
+  reject if diffBps > maxSlippageBps
+  ```
+
+  If the market has moved beyond your slippage tolerance by the time the Matcher processes your order, the order is rejected and you are not filled. This protects you from receiving a significantly worse price than you expected.
+</Accordion>
+
+---
+
+## U
+
+<Accordion title="Unrealized PnL">
+  Unrealized PnL is the paper profit or loss on a position that is still open — it has not yet been settled to your vault. It is calculated continuously using the current mark price:
+
+  ```
+  currentValue = sizeUsd * markPrice / entryPrice
+
+  Long:  unrealizedPnl = currentValue - sizeUsd
+  Short: unrealizedPnl = sizeUsd - currentValue
+  ```
+
+  Unrealized PnL is included in your effective collateral calculation, so a large unrealized loss can move your margin ratio toward the liquidation threshold even if you have not been charged any fees.
+</Accordion>

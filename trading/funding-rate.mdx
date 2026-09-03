@@ -1,0 +1,104 @@
+---
+title: "Understanding Funding Rates on Perpetra"
+sidebarTitle: "Funding Rate"
+description: "Learn what funding rates are, how they keep perpetual prices anchored to spot, and how to calculate what you owe or earn as a trader."
+---
+
+Funding rates are periodic payments exchanged between long and short traders to keep Perpetra's perpetual prices in line with real-world spot prices. Because perpetuals never expire, funding acts as the mechanism that prevents the perpetual price from drifting too far from the underlying asset's true value — the side whose positions are "winning" the drift compensates the other side.
+
+## Why Funding Exists
+
+Perpetra's perpetual price is determined by its own order book, which can move independently of the spot (index) price of the underlying asset. When the perpetual trades at a premium to spot, longs are benefiting from the divergence, so they pay shorts to compensate. When it trades at a discount, shorts pay longs. This creates a self-correcting incentive: traders are nudged to take positions that push the perpetual price back toward spot.
+
+**Sign convention at a glance:**
+
+| Funding Rate | Mark vs Index | Who Pays | Who Receives |
+|---|---|---|---|
+| Positive | Mark > Index | Longs | Shorts |
+| Negative | Mark < Index | Shorts | Longs |
+
+## How the Rate Is Calculated
+
+The funding rate starts with the **premium** — the relative distance between the mark price (Perpetra's perpetual price) and the index price (the spot reference):
+
+```
+premium = (markPrice - indexPrice) / indexPrice
+```
+
+That premium is then clamped to the market's configured maximum, so no single tick can impose an extreme charge:
+
+```
+fundingRate = clamp(premium, -maxFundingRateBps, +maxFundingRateBps)
+```
+
+<Note>
+  Each market also carries an `interestRateBps` parameter in its configuration. This is reserved for a future premium-plus-interest model and is **not** applied in the current implementation — the effective rate is the clamped premium alone.
+</Note>
+
+### Practical Example
+
+Suppose BTC-USDC has a mark price of $65,300 and an index price of $65,000, with a max funding rate of 10 bps:
+
+```
+premium = (65,300 - 65,000) / 65,000 ≈ 0.00461  (≈ 4.61 bps)
+fundingRate = clamp(4.61 bps, -10 bps, +10 bps) = +4.61 bps
+```
+
+The rate is positive, so longs pay shorts at roughly 4.61 bps this interval.
+
+## How Often Funding Settles
+
+A funding keeper calls `updateFundingRate(marketId)` on a fixed schedule defined by each market's `fundingInterval` (for example, every hour). The contract enforces this schedule — if less time has elapsed than `fundingInterval` since the last tick, the call reverts.
+
+On each tick, the contract:
+
+1. Fetches fresh mark and index prices from the Oracle.
+2. Computes the new funding rate using the formula above.
+3. Advances a per-market cumulative index:
+
+```
+indexDelta      = fundingRate * timeDelta / fundingInterval
+cumulativeIndex += indexDelta
+```
+
+`timeDelta` is the actual seconds elapsed since the last update, so a late tick still accrues the correct amount rather than skipping or doubling up.
+
+<Note>
+  This update only refreshes the market's shared state. Your individual position is not touched until you next interact with it — funding settles **lazily**, per position, whenever it is opened, closed, increased, decreased, or liquidated.
+</Note>
+
+## How Your Position Settles Funding
+
+Every position stores a snapshot of the cumulative index from the moment it was last settled (`positionFundingIndex`). Perpetra's Engine calls `calcFundingOwed` on any position event and computes:
+
+```
+rawFunding = sizeUsd * (currentIndex - positionFundingIndex) / RATE_PRECISION
+```
+
+- **Long positions:** `fundingOwed = rawFunding`. A positive value means you owe funding; it is deducted from your collateral.
+- **Short positions:** `fundingOwed = -rawFunding`. When longs are paying, shorts receive the equivalent credit.
+
+After settlement the position's snapshot advances to the current index, so the next calculation only counts funding accrued since that moment.
+
+## Checking the Current Rate
+
+Two read helpers are available for display purposes:
+
+<AccordionGroup>
+  <Accordion title="getCurrentRate(marketId)">
+    Returns the current funding rate in three forms:
+
+    - `rate` — raw signed value scaled to `RATE_PRECISION` (1e18)
+    - `rateBps` — the same rate expressed in basis points
+    - `isLongPaying` — `true` when the rate is positive (longs pay shorts)
+  </Accordion>
+  <Accordion title="timeUntilNextFunding(marketId)">
+    Returns the seconds remaining before the next funding tick is permitted. Useful for building countdown displays in the UI.
+  </Accordion>
+</AccordionGroup>
+
+The frontend also uses `estimateFundingOwed` as a read-only call to show you an "estimated funding" figure for an open position without actually settling anything on-chain.
+
+<Tip>
+  Before entering a large position, check the current funding rate and direction for that market. A persistently positive rate means longs are paying continuously — over several funding intervals this cost can meaningfully erode your collateral, even if the price moves in your favour. Factoring in the expected funding cost is especially important for positions you plan to hold for hours or days.
+</Tip>

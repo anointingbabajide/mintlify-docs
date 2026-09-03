@@ -1,0 +1,68 @@
+---
+title: "Mark Price vs. Index Price: How Perpetra Prices Work"
+sidebarTitle: "Mark & Index Price"
+description: "Learn how Perpetra's index price and mark price differ, where each comes from, and why mark price protects you from unfair liquidations."
+---
+
+Perpetra tracks two separate prices for every market at all times — the index price and the mark price. Understanding the difference matters because one of them directly controls whether your position gets liquidated, and it isn't the one most traders think of first.
+
+## Index price: the raw oracle feed
+
+The index price is Perpetra's view of what an asset is actually worth right now, based entirely on sources outside the platform's own orderbook.
+
+For the three major markets — HBAR-USDC, BTC-USDC, and ETH-USDC — the index price is sourced from **Supra** as the primary oracle, with **Chainlink** as a secondary fallback. When both feeds are available at the same time, Perpetra cross-checks them against each other. If they've drifted too far apart, the price is rejected outright as a safety measure against a lagging or malfunctioning provider. When they agree within acceptable bounds, Chainlink's value is used.
+
+For the ten **HTS token markets** — SAUCE-USDC, PACK-USDC, HBARX-USDC, and others — neither Supra nor Chainlink provides reliable coverage. Instead, Perpetra sources the index price directly from a live **SaucerSwap trading pool** paired against HBAR, then converts that value to USD using HBAR's own price feed.
+
+<CardGroup cols={2}>
+  <Card title="Major Markets" icon="chart-line">
+    **HBAR-USDC, BTC-USDC, ETH-USDC**
+
+    Primary: Supra oracle
+    Fallback: Chainlink
+    Cross-validated before use
+  </Card>
+  <Card title="HTS Token Markets" icon="coins">
+    **SAUCE, PACK, HBARX, GIB, GRELF, DOVU, BONZO, KARATE, ORBIT, PLEX**
+
+    Sourced from SaucerSwap TWAP pool, converted via HBAR/USD
+  </Card>
+</CardGroup>
+
+See [Supported Markets](/get-started/supported-markets) for the full list of oracle sources per market.
+
+## Mark price: the smoothed reference price
+
+The mark price is not read directly from any oracle. Perpetra's keeper system computes it on-chain roughly every 30 seconds — or sooner when prices are moving quickly — by blending the index price with the **EMA-adjusted premium** that appears between the index price and Perpetra's own orderbook.
+
+In plain terms: if Perpetra's orderbook is trading at a persistent premium to the index price, the mark price will sit slightly above the index price to reflect that. If traders are pricing the asset at a discount, it sits slightly below. The EMA smoothing prevents a single sharp spike or dip on the orderbook from instantly feeding through into the reference price.
+
+**Mark price is the only price used for:**
+
+- Calculating your unrealized PnL
+- Computing your margin ratio
+- Determining whether your position is eligible for liquidation
+
+Your liquidation price in the UI is always expressed in mark price terms. See [PnL & Liquidation](/trading/pnl-and-liquidation) for the exact formulas.
+
+<Note>
+  Your liquidation price is based on the **mark price**, not the last traded price. A momentary spike in the last traded price on Perpetra's orderbook will not trigger your liquidation — only a sustained move in the mark price can.
+</Note>
+
+## Why mark price protects you
+
+If positions were valued off the index price alone, a bad actor could push Perpetra's own orderbook to an extreme print and force liquidations that have nothing to do with real market conditions. If they were valued off Perpetra's last traded price directly, even an accidental thin-book gap trade could unfairly hit stops.
+
+Mark price solves both problems. By blending the external oracle reference with the EMA-smoothed premium from the orderbook, it stays anchored to global market reality while still reflecting genuine price discovery happening on Perpetra. A single stale quote, a momentary manipulation attempt, or a low-liquidity wick cannot move the mark price far enough or fast enough on its own to trigger an unfair liquidation.
+
+## Staleness protection
+
+The mark price is only considered valid for a limited window after it was last updated. If the keeper process falls behind or stops running, Perpetra treats the mark price as unavailable rather than continuing to use stale data. While a mark price is stale, trading on that market is paused until fresh prices resume — protecting you from opening or managing positions against an outdated reference.
+
+## Where to find these prices in the UI
+
+Both prices are always visible in the **header bar** at the top of the trading interface. The index price and mark price are displayed side by side for the currently selected market. Switching markets updates both values immediately.
+
+<Tip>
+  If you notice the mark price diverging noticeably from the index price, it often signals an imbalance in open interest — one side of the market is dominant. Check the funding rate to see whether this is being priced in: a persistent premium or discount drives the funding rate in the direction that discourages the crowded side.
+</Tip>

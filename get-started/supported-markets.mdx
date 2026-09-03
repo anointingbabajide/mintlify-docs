@@ -1,0 +1,51 @@
+---
+title: "Supported Markets on Perpetra — All 13 Perpetual Pairs"
+sidebarTitle: "Markets"
+description: "Browse all 13 perpetual markets on Perpetra, understand how each market is priced, and learn why the oracle source affects your trading experience."
+---
+
+Perpetra lists 13 perpetual markets, split into two groups based on how the index price is sourced. The oracle source determines the index price, which in turn anchors the mark price and the funding rate for each market. Understanding the split helps you know where a market's reference price comes from before you trade it.
+
+<Note>
+  All 13 markets are quoted against USDC. Your collateral, PnL, and liquidation price are always denominated in USDC regardless of which market you trade.
+</Note>
+
+## Major markets — Supra and Chainlink oracles
+
+These three markets use [Supra](https://supra.com) as the primary price oracle, with [Chainlink](https://chain.link) as an automatic fallback if Supra is unavailable. The dual-oracle setup gives these markets a more resilient index price feed, since they can switch sources without any disruption to trading.
+
+| Market    | Base asset |
+| --------- | ---------- |
+| HBAR-USDC | HBAR       |
+| BTC-USDC  | Bitcoin    |
+| ETH-USDC  | Ethereum   |
+
+## HTS token markets — SaucerSwap TWAP oracle
+
+These 10 markets are Hedera Token Service (HTS) tokens actively traded on [SaucerSwap](https://www.saucerswap.finance). Rather than relying on Supra or Chainlink — which don't carry reliable price feeds for smaller HTS tokens — Perpetra sources the index price directly from SaucerSwap's time-weighted average price (TWAP). This applies both to on-chain contract calculations and to the price charts you see in the trading interface.
+
+| Market      | Base asset |
+| ----------- | ---------- |
+| SAUCE-USDC  | SAUCE      |
+| PACK-USDC   | PACK       |
+| HBARX-USDC  | HBARX      |
+| GIB-USDC    | GIB        |
+| GRELF-USDC  | GRELF      |
+| DOVU-USDC   | DOVU       |
+| BONZO-USDC  | BONZO      |
+| KARATE-USDC | KARATE     |
+| ORBIT-USDC  | ORBIT      |
+| PLEX-USDC   | PLEX       |
+
+## Why the oracle split matters to you as a trader
+
+The oracle source feeds directly into the [index price](/trading/mark-price-and-index-price), which anchors two things you care about directly:
+
+- **Mark price:** Perpetra uses mark price — not last trade price — for PnL calculations and liquidation checks. Mark price is derived from the index price plus a smoothed basis premium. If the index price feed is narrow and deep (Supra/Chainlink), your mark price is less susceptible to short-term manipulation. For HTS token markets, the SaucerSwap TWAP reflects where those tokens are actually trading, making it the most accurate available source even if the market is thinner.
+- **Funding rate:** The funding rate measures how far the perpetual price has drifted from the index price. The oracle source determines what "index" means for that calculation, so the funding rate on a SaucerSwap TWAP market reflects divergence from SaucerSwap spot prices, while major markets reflect divergence from the Supra/Chainlink feed.
+
+In practice, the mechanics of placing an order, setting leverage, managing margin, and reading your liquidation price work identically across both groups of markets. The oracle split is an internal pricing detail — but it's worth knowing when you're evaluating the precision of a market's reference price or comparing funding rates across markets.
+
+<Info>
+  For a deeper explanation of how index price and mark price interact, see [Mark Price & Index Price](/trading/mark-price-and-index-price). For how funding is calculated and when payments occur, see [Funding Rate](/trading/funding-rate).
+</Info>

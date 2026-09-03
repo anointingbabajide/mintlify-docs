@@ -1,0 +1,55 @@
+---
+title: "Perpetra Deployed Contract Addresses on Hedera"
+sidebarTitle: "Contract Addresses"
+description: "Every Perpetra smart contract address on Hedera testnet, with a description of each contract's role in the protocol."
+---
+
+All Perpetra smart contracts are deployed on **Hedera testnet** and are EVM-compatible. The table below lists every contract address alongside a plain-English description of what that contract does. These addresses are what the Perpetra frontend and SDK use when submitting or settling orders on your behalf.
+
+<Warning>
+  Always verify you are interacting with the correct, current address before sending funds or signing any transaction. Contract addresses can change when a new version is deployed. If in doubt, check this page or the official Perpetra announcement channels before proceeding.
+</Warning>
+
+<Note>
+  All addresses listed here are on **Hedera testnet**. Do not send mainnet assets to these addresses.
+</Note>
+
+## Core Protocol Contracts
+
+| Contract | Address | Role |
+|---|---|---|
+| `KeeperRegistry` | `0x722dA98CF63d9201f1021A13b6E7A292639Cc716` | Registers and authorizes keeper bots that are permitted to trigger on-chain settlement actions such as order execution and liquidation. |
+| `PositionRegistry` | `0x35b21a6154276c89d6d2Ef5B1cF16f018b0d90Ac` | Stores the state of every open position — size, entry price, collateral, funding index snapshot, and margin mode. |
+| `OrderValidator` | `0x8F61dCB6A1eabFc7E8B0b863964af8E53C08FDFD` | Verifies EIP-712 order signatures and enforces nonce uniqueness to prevent replay attacks before any order is executed. |
+| `RiskEngine` | `0xC258F2825f936820769A1904A60Bc6e6a78Bf484` | Runs all pre-trade checks (leverage, initial margin, open interest) and computes PnL, margin ratios, and liquidation eligibility. |
+| `MarketRegistry` | `0xb7f6A23B8Fc74eEA33B6905b91aC2c25707F1119` | Maintains the list of tradeable markets and their per-market parameters such as max leverage, maintenance margin rates, and OI caps. |
+| `Vault` | `0xeFd585E2DC0bb4162ef2DA8C8516dC521578c97C` | Holds all deposited USDC collateral. Credits and debits trader balances and transfers funds during settlement, fee collection, and liquidation. |
+| `AccountManager` | `0x53521106783d4f26ED79f34A01431C181dB7027a` | Manages per-trader account metadata including margin mode selection, referral linkage, and cross-position bookkeeping. |
+
+## Oracle Contracts
+
+| Contract | Address | Role |
+|---|---|---|
+| `SupraOracle` | `0x0168817e0CDce9A488F87a23E1f026D770129c69` | Adapter for Supra oracle price feeds, providing an index price source for supported markets. |
+| `ChainlinkOracle` | `0xEeAE92E9Bda398229Fc80B409188F7fd259C6d87` | Adapter for Chainlink price feeds, providing an additional index price source where Chainlink feeds are available on Hedera. |
+| `PerpetraOracle` | `0xf76f36a125cfeB26815d2990C7808122E93de206` | Perpetra's aggregator oracle that selects and validates prices across multiple feeds; the mark price used for PnL and liquidation is derived here. |
+| `SaucerSwapTWAPOracle` | `0xC3390a2Ca36Bf852710E71E79a92d34DE473bE7B` | Reads time-weighted average prices from SaucerSwap liquidity pools on Hedera, used as an index price source for HTS token markets. |
+
+## Financial & Operational Contracts
+
+| Contract | Address | Role |
+|---|---|---|
+| `FundingManager` | `0x07E8189501048aB7fD1A70a82Aea933c20633f8B` | Tracks the cumulative funding index per market and calculates funding owed by each position when it is opened, modified, or closed. |
+| `InsuranceFund` | `0x72222Ad11E322984509b62943518311f5D214b62` | Absorbs losses that arise when a liquidated position's collateral is insufficient to cover the keeper fee, protecting the system from socialized losses. |
+| `FeeCollector` | `0xC8eE4aB3CE2fEec5Ffcea335c1Bb232d397a47f0` | Accumulates trading and liquidation fees and distributes them between the Insurance Fund and the protocol treasury according to the configured split. |
+| `PointsSystem` | `0xc7f34Dd6A21dd32CEf1752E9581b51044d2Fe90E` | Records trade volume and deposit activity to award points; also tracks referral relationships and credits referrer bonuses. |
+
+## Engine & Execution Contracts
+
+| Contract | Address | Role |
+|---|---|---|
+| `EngineConfig` | `0x2c5d113bBB5af31B207fD917F24C190189dDE472` | Stores protocol-wide configuration parameters such as fee rates, margin requirements, and funding rate caps that the engine modules read at runtime. |
+| `EngineOpen` | `0x0395B3ea8A0595f90Cfab40109bDfd7A4f9c6e83` | Executes the on-chain logic for opening new positions and increasing existing ones after the off-chain matcher has paired orders. |
+| `EngineClose` | `0x02440Fd3cb349232d064632f2E9B6e8e111f32D7` | Executes the on-chain logic for closing or decreasing positions, including PnL settlement, funding deduction, and collateral release. |
+| `Liquidator` | `0xecFEBA6D4820Cfc34fd52f5fC26B4FBAC0E2Ce22` | Called by an authorized keeper to forcibly close an under-margined position, compute the liquidation settlement, and distribute proceeds to the keeper and Insurance Fund as required. |
+| `Router` | `0x7BFb25D96857F0033d41c039152be9007354A53E` | The single entry point for keeper-submitted transactions; validates the caller's keeper authorization and routes calls to the correct engine or liquidation contract. |

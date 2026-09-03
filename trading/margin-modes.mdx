@@ -1,0 +1,68 @@
+---
+title: "Cross and Isolated Margin Modes on Perpetra Explained"
+sidebarTitle: "Margin Modes"
+description: "Choose between cross margin (shared collateral pool) and isolated margin (per-position collateral cap) to match your risk tolerance."
+---
+
+Every position on Perpetra is opened in one of two margin modes, which you select in the order panel before you submit. Your choice determines how your collateral is measured when the protocol checks whether your position is healthy — and what can be affected if a position goes underwater.
+
+## Comparing margin modes at a glance
+
+| | Cross margin | Isolated margin |
+|---|---|---|
+| Collateral scope | Shared across all cross positions (same collateral token) | Fixed to this position only |
+| Liquidation check | Account-level equity vs. total maintenance required | Per-position effective collateral vs. that position's maintenance margin |
+| Profitable trades help other positions? | Yes — unrealized PnL from winning positions supports losing ones | No — each position stands alone |
+| Losing trades can affect other positions? | Yes — a large loss erodes the shared pool | No — loss is capped at the isolated collateral |
+| Best for | Active traders managing correlated positions | Limiting downside on a specific, higher-risk trade |
+
+## Isolated margin
+
+In isolated mode, a fixed amount of collateral is dedicated to this one position. The health check is self-contained:
+
+```
+Effective Collateral = Collateral + Unrealized PnL
+Liquidatable if: Effective Collateral < Maintenance Margin
+```
+
+If the position is liquidated, you lose the collateral backing it — but your vault balance and all other open positions are completely unaffected. Isolated margin gives you the clearest possible picture of your maximum loss for a given trade: it cannot exceed the collateral you allocated to it.
+
+Use isolated margin when you want to take a directional bet with a defined maximum downside, or when a position is risky enough that you don't want it to threaten the rest of your account.
+
+## Cross margin
+
+In cross mode, all of your open cross-margin positions that share the same collateral token are evaluated together at the account level. The health check looks at your whole cross account, not each position individually — this mirrors the model used by Hyperliquid:
+
+```
+Account Equity          = Vault Balance + sum of Unrealized PnL across all open cross positions (same collateral token)
+Total Maintenance       = sum of Maintenance Margin across those same positions
+Liquidatable if:          Account Equity < Total Maintenance
+```
+
+This pooling works in both directions. A cross position that is deep in profit adds unrealized PnL to the account equity, which can keep a losing cross position from hitting liquidation threshold. At the same time, a large losing position drains the shared pool and can push your whole cross account toward liquidation if the other positions don't have enough equity to compensate.
+
+<Note>
+  Isolated positions are **never** included in the account-level cross
+  calculation. They are always evaluated independently on their own collateral,
+  regardless of how many cross positions you have open at the same time.
+</Note>
+
+Use cross margin when you are running multiple positions that you expect to be loosely correlated — for example, a long and a short on related assets — and you want each to benefit from the other's unrealized gains as a buffer.
+
+## The cross liquidation price is an estimate
+
+When you open a cross position, Perpetra displays a liquidation price for it in the **Positions** panel. That number is calculated by holding every other cross position's PnL fixed at its current price and solving for the price level at which this one position's move would tip the account into liquidation.
+
+<Warning>
+  The cross liquidation price is a **point-in-time snapshot**, not a fixed
+  line. If any of your other cross positions move in price — up or down — the
+  liquidation price for every other cross position shifts too. Do not treat the
+  displayed number as a hard boundary. Monitor your account equity actively when
+  running multiple cross positions.
+</Warning>
+
+## Choosing a mode
+
+You set the margin mode for each position individually when you open it. You cannot switch a position between cross and isolated after it is open.
+
+For details on how leverage and maintenance margin interact with your chosen mode, see [Positions & Margin](/trading/positions-and-margin). For worked liquidation examples under both modes, see [PnL & Liquidation](/trading/pnl-and-liquidation).

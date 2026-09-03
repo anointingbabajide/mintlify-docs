@@ -1,0 +1,109 @@
+---
+title: "PnL, Liquidation Price, and What Happens on Perpetra"
+sidebarTitle: "PnL & Liquidation"
+description: "How unrealized and realized PnL are calculated, how your liquidation price is derived, and what the liquidation process looks like end to end."
+---
+
+Your profit or loss on Perpetra is calculated continuously against the mark price, not the last traded price. Knowing how PnL and liquidation price are derived helps you manage positions actively and understand the exact conditions under which a liquidation can occur.
+
+## Unrealized PnL
+
+While your position is open, your unrealized PnL updates every time the mark price moves:
+
+```
+Long:  PnL = SizeUsd × MarkPrice / EntryPrice − SizeUsd
+Short: PnL = SizeUsd − SizeUsd × MarkPrice / EntryPrice
+```
+
+A positive result is profit; a negative result is a loss. Unrealized PnL feeds directly into your effective collateral calculation:
+
+```
+Effective Collateral = Collateral + Unrealized PnL    (floored at 0)
+```
+
+This means a losing position gradually erodes your effective collateral, moving your liquidation price closer to the current mark price over time.
+
+<Note>
+  PnL always uses the **mark price**, not the last traded price or the index
+  price. Mark price is derived from the index price with a dampening factor to
+  resist short-term manipulation. See [Mark Price & Index Price](/trading/mark-price-and-index-price) for the full derivation.
+</Note>
+
+## Realized PnL
+
+When you close a position (fully or partially), the unrealized PnL for that portion is realized and settled to your vault balance. Any trading fees and funding owed are also settled at this point.
+
+## Liquidation price (isolated positions)
+
+For an isolated position, the liquidation price is the mark price at which your effective collateral would fall exactly to the maintenance margin threshold. The formulas are:
+
+```
+Maintenance Margin = SizeUsd × maintenanceMarginBps / 10,000
+
+Long:  Liquidation Price = EntryPrice × (SizeUsd − Collateral + MaintenanceMargin) / SizeUsd
+Short: Liquidation Price = EntryPrice × (SizeUsd + Collateral − MaintenanceMargin) / SizeUsd
+```
+
+### Worked example
+
+You open a long position with the following parameters:
+
+- **Position size:** $65,000
+- **Entry price:** $64,800
+- **Collateral:** $6,500
+- **Market `maintenanceMarginBps`:** 50 (0.5%)
+
+```
+Maintenance Margin = 65,000 × 50 / 10,000 = $325
+
+Liquidation Price  = 64,800 × (65,000 − 6,500 + 325) / 65,000
+                   = 64,800 × 58,825 / 65,000
+                   ≈ $58,613
+```
+
+If the mark price falls to approximately $58,613, your effective collateral equals the maintenance margin and the position becomes eligible for liquidation.
+
+<Note>
+  If a long position is so heavily collateralized that the formula produces a
+  negative result, the liquidation price is effectively zero — the position
+  cannot be liquidated by price movement alone. The equivalent edge case for a
+  short produces an effectively unreachable maximum for the same reason.
+</Note>
+
+## Liquidation price (cross positions)
+
+Cross positions don't have a fixed individual liquidation price in the same way isolated positions do. Because liquidation is decided at the account level, Perpetra calculates a *per-position* liquidation price by holding every other cross position's PnL fixed at the current price and solving for the mark price at which this one position's move would tip the whole account over the threshold.
+
+This means the displayed liquidation price for a cross position changes whenever any other cross position in your account moves. See [Margin Modes](/trading/margin-modes) for the full account-level liquidation check formula.
+
+<Warning>
+  **Funding accrual affects your liquidation price.** Funding is settled
+  lazily — it accrues against your collateral whenever your position is touched
+  (opened, closed, increased, decreased, or liquidated). If you are on the
+  paying side of funding for an extended period, the cumulative deduction
+  reduces your effective collateral, which moves your liquidation price closer
+  to the current mark price. Monitor the current funding rate and your estimated
+  funding owed in the Positions panel, especially on positions held overnight or
+  over weekends.
+</Warning>
+
+## What triggers a liquidation
+
+Crossing the liquidation threshold makes your position *eligible* for liquidation — it is not liquidated the instant the price touches that level. A **liquidation keeper** continuously monitors all open positions and calls Perpetra's liquidation contract once it detects a position (or, for cross positions, an account) that has crossed the threshold.
+
+When the keeper liquidates your position:
+
+1. **The position is closed** at the current mark price.
+2. **A liquidation fee** is deducted from the remaining collateral and paid to the keeper that triggered the liquidation. This fee incentivizes keepers to act promptly. The formula is:
+   ```
+   Liquidation Fee = SizeUsd × liquidationFeeBps / 10,000
+   ```
+3. **Any remaining collateral** after the liquidation fee is returned to your vault balance. If losses exceed collateral, the shortfall is covered by the **Insurance Fund**.
+
+<Note>
+  The keeper's liquidation fee comes out of your remaining collateral — it does
+  not add to your total loss beyond the fee itself. See [Fees](/trading/fees)
+  for the fee rates and how they are distributed.
+</Note>
+
+For a technical deep-dive into the keeper system and liquidation contract, see [Keeper System](/architecture/keeper-system) and [Liquidation Engine](/architecture/liquidation-engine).

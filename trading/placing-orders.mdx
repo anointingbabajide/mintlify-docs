@@ -1,0 +1,108 @@
+---
+title: "How to Place, Open, and Close Positions on Perpetra"
+sidebarTitle: "Placing Orders"
+description: "Step-by-step guide to opening and closing a leveraged perpetuals position on Perpetra, from choosing a market to signing your order gaslessly."
+---
+
+Every trade on Perpetra starts from the order panel on the trading page. Before you begin, make sure you have deposited USDC collateral into your account — the order panel will prompt you to do this if you haven't yet. Once your collateral is in place, follow the steps below to open your first position.
+
+<Note>
+  If you haven't added collateral yet, the submit button shows **Deposit to Trade** instead of **Open Long** or **Open Short**. Complete a deposit first before attempting to place an order. See [Deposits & Withdrawals](/trading/deposits-and-withdrawals) for instructions.
+</Note>
+
+## Opening a position
+
+<Steps>
+  <Step title="Choose a market">
+    Select the market you want to trade from the market selector at the top of
+    the page. Perpetra offers 13 markets quoted in USDC, including HBAR-USDC,
+    BTC-USDC, ETH-USDC, and 10 additional Hedera Token Service (HTS) markets.
+    The header bar above the chart shows the market's mark price, index price,
+    24-hour volume, open interest, current funding rate, time until the next
+    funding tick, and the index price source (Supra, Chainlink, or SaucerSwap
+    TWAP, depending on the market).
+  </Step>
+  <Step title="Choose a side">
+    Select **Long** or **Short** at the top of the order panel. Go long if you
+    expect the price to rise; go short if you expect it to fall.
+  </Step>
+  <Step title="Choose an order type">
+    Pick **Market** or **Limit** from the order type tabs.
+
+    - **Market** fills immediately against the best available price on the book.
+      Use this when speed of execution matters more than the exact fill price.
+    - **Limit** rests on the book at your chosen price until a counterparty
+      fills it or you cancel it. Use this when you want price certainty.
+
+    The **TP/SL** tab is visible but not yet functional. See [Order Types &
+    Reduce-Only](/trading/order-types-and-reduce-only) for the full breakdown of
+    each type.
+  </Step>
+  <Step title="Set your size">
+    Enter your position size in USDC. Use the **25% / 50% / 75% / Max**
+    quick-select buttons to size your trade as a percentage of your available
+    balance. The order info section below the input updates in real time as you
+    type.
+  </Step>
+  <Step title="Set your leverage">
+    Drag the leverage slider to set your exposure multiplier, anywhere from
+    **1× to 50×**. Higher leverage amplifies both gains and losses and moves
+    your liquidation price closer to your entry. The order info section shows
+    you the estimated liquidation price before you confirm.
+
+    See [Positions & Margin](/trading/positions-and-margin) for how leverage
+    interacts with your collateral and margin requirements.
+  </Step>
+  <Step title="Choose your margin mode">
+    Select **Cross** or **Isolated** margin from the toggle in the order panel.
+
+    - **Cross** pools your collateral across all cross-margin positions,
+      allowing profitable positions to support positions under pressure.
+    - **Isolated** walls off a fixed amount of collateral for this position
+      only, so a liquidation here cannot affect the rest of your account.
+
+    See [Margin Modes](/trading/margin-modes) for a full comparison and
+    guidance on when to use each.
+  </Step>
+  <Step title="Review and sign">
+    Before submitting, review the **Order Info** section at the bottom of the
+    panel. It shows your position size, estimated entry price, estimated
+    liquidation price, and the taker fee for a market order (or maker fee for a
+    limit order).
+
+    When you're ready, click **Open Long** or **Open Short**. Your wallet
+    prompts you to sign an **EIP-712 message** — this is gasless and costs
+    nothing at signing time. The signed order is then sent to Perpetra's
+    matching engine for execution and on-chain settlement.
+  </Step>
+</Steps>
+
+## What happens after you sign
+
+Your signed order is forwarded to Perpetra's off-chain matching engine. What happens next depends on the order type:
+
+<CardGroup cols={2}>
+  <Card title="Market order" icon="bolt">
+    Your order matches immediately against the best available resting orders on
+    the opposite side. Once the fill is settled on-chain, you'll see a **toast
+    notification** confirming the trade and the position will appear in the
+    **Positions** panel below the chart.
+  </Card>
+  <Card title="Limit order" icon="clock">
+    If your price isn't immediately available in the book, the order rests until
+    a counterparty fills it. You can monitor it in the **Open Orders** panel.
+    Cancel it at any time by clicking the cancel icon in that panel.
+  </Card>
+</CardGroup>
+
+<Tip>
+  For a deeper look at what happens between signing and settlement — including
+  how EIP-712 signatures are verified and how trades are written on-chain — see
+  [How Perpetra Works](/get-started/how-it-works).
+</Tip>
+
+## Closing a position
+
+Closing a position follows the same flow as opening one, but in reverse. Find your open position in the **Positions** panel, then click **Close**. You can close fully or enter a partial size to close only part of your exposure.
+
+The close is submitted as a signed order, exactly like an open. Under the hood, Perpetra applies a **reduce-only** flag automatically, which means the close order can never accidentally overshoot and flip you into a new position on the opposite side. If the order size exactly matches your open position, you close to flat. See [Order Types & Reduce-Only](/trading/order-types-and-reduce-only) for more on how reduce-only orders work.

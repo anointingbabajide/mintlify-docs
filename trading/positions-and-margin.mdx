@@ -1,0 +1,98 @@
+---
+title: "Position Size, Leverage, and Margin Explained on Perpetra"
+sidebarTitle: "Positions & Margin"
+description: "How leverage limits, initial margin, maintenance margin, and margin ratio work together to determine your position health on Perpetra."
+---
+
+When you open a position on Perpetra, the protocol runs a series of on-chain checks to make sure your collateral is sufficient for the leverage you are requesting. Once your position is open, those checks continue to run — monitoring your position's health in real time. Understanding these mechanics helps you size positions safely and take action before a liquidation becomes necessary.
+
+## How leverage works
+
+Each market defines a minimum and maximum leverage. When you open or increase a position, both are enforced by the on-chain Risk Engine:
+
+```
+Position Size (USDC) >= Collateral × minLeverage    (leverage floor)
+Position Size (USDC) <= Collateral × maxLeverage    (leverage ceiling)
+```
+
+The floor ensures a position can't be so heavily over-collateralized that it falls below the market's minimum leverage. The ceiling is what the leverage slider in the order panel reflects — on most markets, this is **50×**.
+
+## Initial margin requirement
+
+Initial margin is a separate check from the leverage ceiling, not derived from it. Each market has its own `initialMarginBps` rate:
+
+```
+Initial Margin Required = Position Size × initialMarginBps / 10,000
+```
+
+Your collateral must meet or exceed this figure to open or increase a position. In practice, a market's `initialMarginBps` is usually set to correspond to its maximum leverage — for example, an `initialMarginBps` of 100 pairs with a `maxLeverage` of 100×. However, these are two independent checks enforced separately on-chain.
+
+## Open interest caps
+
+Each market also caps total directional exposure across all traders:
+
+```
+Long OI after this order  <= maxLongOpenInterest
+Short OI after this order <= maxShortOpenInterest
+```
+
+A single position is also subject to a `maxPositionSizeUsd` cap, regardless of leverage or remaining open interest headroom. If your intended position size would breach either cap, the order will be rejected.
+
+## How position health is tracked
+
+Once your position is open, the protocol continuously tracks its health using two values:
+
+```
+Effective Collateral = Collateral + Unrealized PnL    (floored at 0)
+Margin Ratio (bps)   = Effective Collateral × 10,000 / Position Size
+Maintenance Margin   = Position Size × maintenanceMarginBps / 10,000
+```
+
+Your position becomes eligible for liquidation when:
+
+```
+Effective Collateral < Maintenance Margin
+```
+
+The **Positions** panel shows you your current effective collateral, margin ratio, and estimated liquidation price so you can monitor this at a glance.
+
+<Note>
+  The `initialMarginBps` for a market is always greater than its
+  `maintenanceMarginBps`. The gap between the two is your buffer: it's how far
+  your effective collateral can fall from where you opened before the position
+  becomes liquidatable. A wider gap means more breathing room at a given
+  leverage level.
+</Note>
+
+## Adding margin to a position
+
+If a position's margin ratio is falling and you want to push your liquidation price further away, you can add collateral directly to an open position from the **Positions** panel. Adding margin increases effective collateral, which raises the margin ratio and moves the liquidation threshold further from the current price.
+
+<Tip>
+  Add margin before your position gets close to the liquidation threshold —
+  not after. Once effective collateral drops below maintenance margin, the
+  position becomes eligible for liquidation at any time.
+</Tip>
+
+## What the Positions panel shows
+
+The **Positions** panel below the chart displays key details for each of your open positions:
+
+| Field | What it means |
+|---|---|
+| Size | Notional position size in USDC |
+| Entry price | The average price at which your position was opened |
+| Mark price | Current mark price used for PnL and liquidation calculations |
+| Liquidation price | The mark price at which effective collateral would fall below maintenance margin |
+| Unrealized PnL | Running gain or loss at the current mark price |
+| Margin | Collateral currently backing the position |
+| Margin ratio | Effective collateral as a percentage of position size (in bps) |
+
+## How margin mode affects these calculations
+
+The formulas above apply the same way in both margin modes. What changes is what the "Collateral" figure refers to:
+
+- In **isolated** mode, each position is checked independently against its own dedicated collateral.
+- In **cross** mode, all cross-margin positions sharing the same collateral token are checked together at the account level — your combined unrealized PnL and vault balance determine health, not each position in isolation.
+
+See [Margin Modes](/trading/margin-modes) for a full explanation of the account-level cross check. For the exact price level at which effective collateral crosses below maintenance margin — and what happens when it does — see [PnL & Liquidation](/trading/pnl-and-liquidation).

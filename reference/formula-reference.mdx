@@ -1,0 +1,446 @@
+---
+title: "Perpetra Formula Reference: Every Equation Explained"
+sidebarTitle: "Formula Reference"
+description: "Every formula Perpetra uses — leverage, PnL, liquidation, funding, fees, slippage, and points — with variable definitions and source contracts."
+---
+
+Every formula Perpetra uses to validate, price, and settle your trades is listed here in one place. All prices and USD amounts are 18-decimal fixed-point values unless stated otherwise. All `Bps` values are expressed out of `10,000` — for example, `50 bps = 0.5%`. Use this page as a quick reference when you want to understand exactly how a number on the trading interface is calculated.
+
+---
+
+## 1. Pre-Trade Checks
+
+These checks run inside **RiskEngine** before any position is opened or increased. Every check must pass or the transaction reverts.
+
+### Leverage Bounds
+
+```
+leverage = sizeUsd / collateralAmount
+
+minLeverage <= leverage <= maxLeverage
+```
+
+Perpetra evaluates both bounds without division to avoid precision loss:
+
+```
+sizeUsd >= collateralAmount * minLeverage
+collateralAmount * maxLeverage >= sizeUsd
+```
+
+| Variable | Meaning |
+|---|---|
+| `sizeUsd` | Notional value of the position you want to open, in USD (18 dec) |
+| `collateralAmount` | USDC you are depositing as margin for this position (18 dec) |
+| `minLeverage` | Protocol minimum leverage (e.g. 1×) |
+| `maxLeverage` | Protocol maximum leverage (e.g. 50×) |
+
+**Contract:** `RiskEngine`
+
+---
+
+### Initial Margin
+
+```
+initialMarginRequired = sizeUsd * initialMarginBps / 10_000
+collateralAmount >= initialMarginRequired
+```
+
+This check is independent of the leverage bounds above — both must pass.
+
+| Variable | Meaning |
+|---|---|
+| `initialMarginBps` | Per-market initial margin requirement in basis points |
+| `initialMarginRequired` | Minimum collateral needed to open the position |
+
+**Contract:** `RiskEngine`
+
+---
+
+### Open Interest Cap
+
+Tracked separately per side (long and short):
+
+```
+newOI = currentOI + sizeUsd        // for a new position
+newOI = currentOI + sizeDelta      // for an increase on an existing position
+
+newOI <= maxLongOpenInterest       // checked for longs
+newOI <= maxShortOpenInterest      // checked for shorts
+```
+
+| Variable | Meaning |
+|---|---|
+| `currentOI` | Total USD notional currently open on this side of the market |
+| `sizeUsd` / `sizeDelta` | New notional being added |
+| `maxLongOpenInterest` | Protocol cap on total long exposure per market |
+| `maxShortOpenInterest` | Protocol cap on total short exposure per market |
+
+**Contract:** `RiskEngine`
+
+---
+
+## 2. PnL, Margin Ratio & Liquidation
+
+### Unrealized PnL
+
+```
+currentValue = sizeUsd * markPrice / entryPrice
+
+Long:  unrealizedPnl = currentValue - sizeUsd
+Short: unrealizedPnl = sizeUsd - currentValue
+```
+
+| Variable | Meaning |
+|---|---|
+| `sizeUsd` | Notional value of your position at entry (18 dec) |
+| `markPrice` | Current mark price used for PnL (18 dec) |
+| `entryPrice` | Price at which the position was originally opened (18 dec) |
+| `currentValue` | Present value of your position at the current mark price |
+
+**Contract:** `RiskEngine`
+
+---
+
+### Effective Collateral
+
+```
+effectiveCollateral = max(0, collateralAmount + unrealizedPnl)
+```
+
+| Variable | Meaning |
+|---|---|
+| `collateralAmount` | USDC deposited as margin for this position |
+| `unrealizedPnl` | Current paper profit/loss (can be negative) |
+
+Effective collateral floors at zero — your loss can never exceed your deposited collateral in isolated mode.
+
+**Contract:** `RiskEngine`
+
+---
+
+### Margin Ratio
+
+```
+marginRatioBps = effectiveCollateral * 10_000 / sizeUsd
+```
+
+| Variable | Meaning |
+|---|---|
+| `effectiveCollateral` | Collateral after accounting for unrealized PnL |
+| `sizeUsd` | Notional position size |
+| `marginRatioBps` | Resulting ratio in basis points (out of 10,000) |
+
+**Contract:** `RiskEngine`
+
+---
+
+### Maintenance Margin
+
+```
+maintenanceMargin = sizeUsd * maintenanceMarginBps / 10_000
+```
+
+| Variable | Meaning |
+|---|---|
+| `maintenanceMarginBps` | Per-market maintenance margin rate in basis points |
+| `maintenanceMargin` | Minimum collateral required to keep the position alive |
+
+**Contract:** `RiskEngine`
+
+---
+
+### Liquidation Trigger
+
+```
+isLiquidatable = effectiveCollateral < maintenanceMargin
+```
+
+When this condition is true, a keeper can submit a liquidation transaction for your position.
+
+**Contract:** `RiskEngine`
+
+---
+
+### Liquidation Price (Isolated)
+
+The mark price at which your isolated position hits the liquidation trigger:
+
+```
+Long:  liqPrice = entryPrice * (sizeUsd - collateralAmount + maintenanceMargin) / sizeUsd
+Short: liqPrice = entryPrice * (sizeUsd + collateralAmount - maintenanceMargin) / sizeUsd
+```
+
+| Variable | Meaning |
+|---|---|
+| `entryPrice` | Price at which the position was opened |
+| `sizeUsd` | Notional position size |
+| `collateralAmount` | Deposited isolated margin |
+| `maintenanceMargin` | Minimum collateral required (derived from `maintenanceMarginBps`) |
+
+<Note>
+  Adding more collateral to an isolated position raises its liquidation price buffer. Withdrawing collateral moves the liquidation price closer to the current mark price.
+</Note>
+
+**Contract:** `RiskEngine`
+
+---
+
+## 3. Cross-Margin Liquidation
+
+### Account Equity Check
+
+For cross-margin, Perpetra evaluates all your open positions in that collateral token together:
+
+```
+accountEquity = max(0, vaultBalance + sum(unrealizedPnl across all cross positions))
+totalMaintenanceRequired = sum(sizeUsd_i * maintenanceMarginBps_i / 10_000)
+
+isLiquidatable = accountEquity < totalMaintenanceRequired
+```
+
+| Variable | Meaning |
+|---|---|
+| `vaultBalance` | Your total deposited USDC balance in the Vault |
+| `unrealizedPnl` | Paper PnL on each individual cross position (can be negative) |
+| `sizeUsd_i` | Notional size of the *i*-th cross position |
+| `maintenanceMarginBps_i` | Maintenance margin rate for the *i*-th position's market |
+
+<Warning>
+  The caller-supplied position set must exactly match your actual open cross-position count for that token. Omitting even a single healthy position causes the check to revert, preventing any manipulation of the result.
+</Warning>
+
+**Contract:** `RiskEngine`
+
+---
+
+### Cross Liquidation Price (Per Position)
+
+This is a snapshot estimate that holds all other positions' PnL fixed at their current mark price:
+
+```
+requiredPnl = (otherMaintenance + targetMaintenance) - vaultBalance - otherPnl
+
+Long:  liqPrice = entryPrice * (requiredPnl + targetSizeUsd) / targetSizeUsd
+Short: liqPrice = entryPrice * (targetSizeUsd - requiredPnl) / targetSizeUsd
+```
+
+| Variable | Meaning |
+|---|---|
+| `otherMaintenance` | Sum of maintenance margins for all cross positions except the target |
+| `targetMaintenance` | Maintenance margin of the position being estimated |
+| `vaultBalance` | Your current USDC balance in the Vault |
+| `otherPnl` | Sum of unrealized PnL on every cross position except the target |
+| `targetSizeUsd` | Notional size of the position being estimated |
+| `entryPrice` | Entry price of the position being estimated |
+
+<Info>
+  This number is a point-in-time estimate only. It becomes stale the moment any other position in your cross book moves. It is not a standing guarantee.
+</Info>
+
+**Contract:** `RiskEngine`
+
+---
+
+## 4. Funding
+
+Funding is accrued continuously and settled when you open, modify, or close a position.
+
+### Premium and Funding Rate
+
+```
+premium = (markPrice - indexPrice) / indexPrice
+fundingRate = clamp(premium, -maxFundingRateBps, +maxFundingRateBps)
+```
+
+| Variable | Meaning |
+|---|---|
+| `markPrice` | Smoothed reference price used for PnL |
+| `indexPrice` | Raw oracle price used as the spot reference |
+| `premium` | Percentage divergence of mark from index |
+| `maxFundingRateBps` | Per-interval funding rate cap in basis points |
+| `fundingRate` | Actual rate applied this interval (clamped) |
+
+**Contract:** `FundingManager`
+
+---
+
+### Cumulative Funding Index
+
+```
+indexDelta = fundingRate * timeDelta / fundingInterval
+cumulativeIndex += indexDelta
+```
+
+| Variable | Meaning |
+|---|---|
+| `timeDelta` | Seconds elapsed since the last funding update |
+| `fundingInterval` | Configured funding period length in seconds |
+| `indexDelta` | Incremental change to the cumulative index this update |
+| `cumulativeIndex` | Running total used to calculate each position's funding owed |
+
+**Contract:** `FundingManager`
+
+---
+
+### Funding Owed by a Position
+
+```
+rawFunding = sizeUsd * (currentIndex - positionFundingIndex) / RATE_PRECISION
+
+Long:  fundingOwed = rawFunding
+Short: fundingOwed = -rawFunding
+```
+
+| Variable | Meaning |
+|---|---|
+| `sizeUsd` | Notional size of the position |
+| `currentIndex` | The latest cumulative funding index |
+| `positionFundingIndex` | The cumulative index recorded when the position was last updated |
+| `RATE_PRECISION` | Fixed-point precision constant for the rate calculation |
+| `fundingOwed` | Amount owed (positive = position pays, negative = position receives) |
+
+A positive `fundingOwed` means your position owes funding to the other side. A negative value means you receive funding.
+
+**Contract:** `FundingManager`
+
+---
+
+## 5. Fees
+
+### Trading Fee
+
+```
+fee = sizeUsd * feeBps / 10_000
+```
+
+| Variable | Meaning |
+|---|---|
+| `sizeUsd` | Notional value of the trade |
+| `feeBps` | `takerFeeBps` for market orders; `makerFeeBps` for limit orders |
+| `fee` | Amount charged in USDC |
+
+**Contract:** `FeeCollector`
+
+---
+
+### Liquidation Fee
+
+```
+fee = sizeUsd * liquidationFeeBps / 10_000
+```
+
+| Variable | Meaning |
+|---|---|
+| `sizeUsd` | Notional value of the liquidated position |
+| `liquidationFeeBps` | Liquidation penalty rate in basis points |
+
+**Contract:** `FeeCollector`
+
+---
+
+### Fee Distribution Split
+
+```
+insuranceAmount = pendingFees * insuranceFundBps / 10_000
+treasuryAmount  = pendingFees - insuranceAmount
+```
+
+| Variable | Meaning |
+|---|---|
+| `pendingFees` | Total fees accumulated and ready for distribution |
+| `insuranceFundBps` | Share directed to the Insurance Fund in basis points |
+| `insuranceAmount` | Portion sent to the Insurance Fund |
+| `treasuryAmount` | Remainder sent to the protocol treasury |
+
+**Contract:** `FeeCollector`
+
+---
+
+## 6. Liquidation Settlement
+
+When a position is liquidated, effective collateral is calculated first, then split against the keeper fee:
+
+```
+effectiveCollateral = collateralAmount + unrealizedPnl - fundingOwed
+```
+
+That value is then split according to three cases:
+
+```
+Case 1 — effectiveCollateral >= keeperFee:
+    keeper receives keeperFee
+    remainder is returned to the trader
+
+Case 2 — 0 < effectiveCollateral < keeperFee:
+    keeper receives effectiveCollateral
+    Insurance Fund covers the shortfall (keeperFee - effectiveCollateral)
+
+Case 3 — effectiveCollateral <= 0:
+    keeper receives 0
+    Insurance Fund covers the full keeperFee
+```
+
+| Variable | Meaning |
+|---|---|
+| `collateralAmount` | Margin deposited for the position |
+| `unrealizedPnl` | Paper PnL at the time of liquidation |
+| `fundingOwed` | Accrued funding cost deducted from collateral |
+| `keeperFee` | Fixed reward paid to the keeper bot that triggered the liquidation |
+
+**Contract:** `Liquidator`
+
+---
+
+## 7. Slippage
+
+Slippage is enforced off-chain by the Matcher before a trade is routed to settlement:
+
+```
+diffBps = |oraclePrice - limitPrice| * 10_000 / limitPrice
+
+reject if diffBps > maxSlippageBps
+```
+
+| Variable | Meaning |
+|---|---|
+| `oraclePrice` | Current oracle price at the time of matching |
+| `limitPrice` | The price embedded in your signed order |
+| `diffBps` | Deviation between oracle price and your limit price, in basis points |
+| `maxSlippageBps` | Maximum tolerated deviation; orders breaching this threshold are rejected |
+
+**Contract:** Matcher (off-chain component)
+
+---
+
+## 8. Points
+
+Points accrue on both sides of a trade — opening and closing are each counted separately.
+
+### Trade Points
+
+```
+tradePointsEarned = volumeUSD * tradePointsPerUSD / 1e6
+```
+
+### Deposit Points
+
+```
+depositPointsEarned = amountUSD * depositPointsPerUSD / 1e6
+```
+
+### Referrer Points
+
+```
+referrerPointsEarned = baseEarned * referralBps / 10_000
+```
+
+| Variable | Meaning |
+|---|---|
+| `volumeUSD` | Notional volume of the trade in USD (18 dec) |
+| `tradePointsPerUSD` | Protocol rate: points awarded per USD of volume (scaled to 1e6) |
+| `amountUSD` | Amount deposited into the Vault in USD |
+| `depositPointsPerUSD` | Protocol rate: points awarded per USD deposited (scaled to 1e6) |
+| `baseEarned` | Points earned by the referee on a given action |
+| `referralBps` | Share of the referee's points credited to the referrer, in basis points |
+
+**Contract:** `PointsSystem`

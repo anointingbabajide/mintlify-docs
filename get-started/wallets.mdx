@@ -1,0 +1,37 @@
+---
+title: "Connecting Your Wallet to Start Trading on Perpetra"
+sidebarTitle: "Wallets"
+description: "Connect HashPack or any WalletConnect-compatible wallet to Perpetra. Understand how EIP-712 signing keeps order placement gasless and non-custodial."
+---
+
+To start trading on Perpetra, you need a wallet that supports Hedera and [EIP-712](https://eips.ethereum.org/EIPS/eip-712) typed message signing. Perpetra supports two connection paths: **HashPack** directly, or any compatible wallet through **WalletConnect**. Connecting your wallet doesn't grant Perpetra any special permissions — it simply lets you sign orders.
+
+## HashPack (recommended)
+
+<Card title="Start with HashPack for the best experience" icon="star" href="https://www.hashpack.app">
+  HashPack has native, thoroughly tested support for EIP-712 signing on Hedera. Orders sign cleanly, and the message shown in your wallet matches exactly what gets submitted to Perpetra's matching engine. It's the connection method with the least friction and the most predictable behavior.
+</Card>
+
+HashPack is the wallet Perpetra has tested most extensively against its order flow. If you're new to Perpetra or Hedera, installing HashPack first is the safest path to placing your first order without running into signing edge cases.
+
+## WalletConnect
+
+If you prefer a different wallet, Perpetra supports connecting through WalletConnect. Any WalletConnect-compatible wallet that supports both Hedera and EIP-712 signing will work.
+
+<Warning>
+  Not all WalletConnect-compatible wallets implement EIP-712 signing identically. If a signed order fails to submit or behaves unexpectedly, switch to HashPack before concluding there's a problem with your order. Signing inconsistencies across wallets are the most common source of submission issues.
+</Warning>
+
+## What signing actually does
+
+Connecting your wallet grants Perpetra no special on-chain permissions. Here's what happens at each stage:
+
+- **On connect:** Perpetra reads your wallet address. Nothing is written on-chain.
+- **On order submission:** Your wallet signs an EIP-712 typed message describing the order (market, side, size, price, leverage). This is not a transaction — no gas is spent and nothing moves on-chain.
+- **On fill:** Once your order matches, Perpetra's settlement keeper submits the fill as an on-chain transaction. Collateral moves and your position is recorded only at this point.
+
+This means you can place, modify, and cancel limit orders freely without incurring gas costs. Gas is only ever spent when a trade actually settles.
+
+<Tip>
+  If you're unfamiliar with EIP-712 signing, think of it like approving a document with your signature — you're authorizing a specific action with specific parameters, but nothing happens with it until the other side of the trade is found and settlement is triggered. See [How It Works](/get-started/how-it-works) for the full order lifecycle.
+</Tip>

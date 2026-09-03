@@ -1,0 +1,96 @@
+{
+  "projectType": "saas",
+  "projectName": "Perpetra",
+  "projectDescription": "Perpetra is a decentralized perpetuals exchange on Hedera that combines off-chain order matching with on-chain settlement, letting traders open leveraged long or short positions on crypto assets without an expiry date.",
+  "theme": "luma",
+  "primaryColor": "#1a6e86",
+  "lightColor": "#383e7c",
+  "darkColor": "#81b4d3",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "get-started/how-it-works",
+              "get-started/wallets",
+              "get-started/supported-markets"
+            ]
+          },
+          {
+            "group": "Trading Guide",
+            "pages": [
+              "trading/placing-orders",
+              "trading/order-types-and-reduce-only",
+              "trading/margin-modes",
+              "trading/positions-and-margin",
+              "trading/pnl-and-liquidation",
+              "trading/funding-rate",
+              "trading/fees",
+              "trading/deposits-and-withdrawals"
+            ]
+          },
+          {
+            "group": "Execution & Pricing",
+            "pages": [
+              "trading/mark-price-and-index-price",
+              "trading/slippage-and-execution"
+            ]
+          },
+          {
+            "group": "Protocol Architecture",
+            "pages": [
+              "architecture/overview",
+              "architecture/contract-map",
+              "architecture/order-lifecycle",
+              "architecture/order-signing-eip712",
+              "architecture/off-chain-matching-engine",
+              "architecture/risk-engine",
+              "architecture/keeper-system",
+              "architecture/liquidation-engine",
+              "architecture/points"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "reference/formula-reference",
+              "reference/contract-addresses",
+              "reference/glossary"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Hybrid orderbook model: off-chain matching with on-chain settlement on Hedera EVM",
+    "Leveraged perpetual positions with up to 50x leverage, no expiry date",
+    "Limit and market orders with EIP-712 gasless signing",
+    "Cross and isolated margin modes",
+    "13 markets including HBAR, BTC, ETH, and Hedera Token Service (HTS) tokens",
+    "Mark price & funding rate mechanism to keep prices anchored to spot",
+    "Points and referral program for tracking activity toward future rewards",
+    "HashPack and WalletConnect wallet support",
+    "Insurance fund protecting against undercollateralized liquidations",
+    "Keeper-automated liquidations, funding updates, and oracle price pushes"
+  ],
+  "publicApiSurface": [
+    "EIP-712 order signing (off-chain order submission)",
+    "getMarketFeeConfig(marketId) — taker/maker/liquidation rates per market",
+    "previewDistribution(token) — preview next fee distribution split",
+    "Vault — deposits and withdrawals of HBAR and approved tokens",
+    "AccountManager — per-user balance queries",
+    "PositionRegistry — on-chain position state",
+    "PointsSystem — points and referral tracking",
+    "MarketRegistry — supported markets and oracle sources",
+    "RiskEngine — leverage bounds, margin ratio, and liquidation checks",
+    "FundingManager — cumulative funding index and rate calculations",
+    "FeeCollector — trading and liquidation fee collection and distribution",
+    "Router — entry-point contract for trade settlement",
+    "Contract addresses on Hedera testnet for all protocol contracts"
+  ]
+}

@@ -1,0 +1,77 @@
+---
+title: "Depositing and Withdrawing Funds on Perpetra"
+sidebarTitle: "Deposits & Withdrawals"
+description: "Learn what assets you can deposit, how the withdrawal cooldown works, and the three checks every withdrawal must pass before funds are released."
+---
+
+Moving funds into and out of Perpetra is straightforward, but there are a few mechanics worth understanding before you start — particularly the per-token withdrawal cooldown that activates on every deposit. This page walks you through both flows and explains what happens to your balance behind the scenes.
+
+## What You Can Deposit
+
+Perpetra accepts **HBAR** directly, along with any token the protocol has explicitly approved. Only approved tokens can be deposited — this protects you from accidentally sending in an unsupported asset that the platform cannot credit or return cleanly.
+
+<Note>
+  Not every deposit-eligible token can be used as trading collateral. A token can be accepted into the platform without being approved to margin a position. Check the app to confirm which tokens are both depositable and collateral-eligible before funding your account.
+</Note>
+
+## How to Deposit
+
+<Steps>
+  <Step title="Connect your wallet">
+    Open Perpetra and connect with **HashPack** (recommended) or any **WalletConnect**-compatible wallet. Make sure you are on the Hedera network.
+  </Step>
+  <Step title="Select a token and amount">
+    Choose the asset you want to deposit — HBAR or an approved HTS token — and enter the amount. The interface shows your wallet balance alongside the platform's supported token list.
+  </Step>
+  <Step title="Confirm the deposit transaction">
+    Sign and submit the transaction from your wallet. Perpetra credits your account based on the amount **actually received** — if a token applies a transfer fee or cut, you are credited the net amount that arrives, not the gross amount you sent.
+  </Step>
+  <Step title="Verify your balance">
+    Once the transaction is confirmed on-chain, your Perpetra balance updates and the funds are ready to use for trading. If a points or rewards program is active, your deposit counts toward it automatically.
+  </Step>
+</Steps>
+
+<Note>
+  Every deposit starts — or **restarts** — a withdrawal cooldown timer for that specific token. See the section below for details.
+</Note>
+
+## The Withdrawal Cooldown
+
+Each time you deposit a given token, a cooldown timer starts for that token. You cannot withdraw that token until the cooldown has passed.
+
+A few important specifics:
+
+- The cooldown is **per-token**, not per-account. Depositing HBAR does not affect the cooldown on any other token you hold.
+- The timer **resets on every deposit** of that token, not just your first. If you deposit the same token a second time before the first cooldown expires, the clock restarts from the moment of the new deposit.
+
+<Note>
+  If you plan to withdraw soon, avoid making an additional deposit of the same token in the meantime — doing so will reset your cooldown and delay your withdrawal by the full waiting period again.
+</Note>
+
+## How Withdrawals Are Processed
+
+When you submit a withdrawal request, the platform checks three conditions before releasing your funds:
+
+<Steps>
+  <Step title="Cooldown check">
+    Has the withdrawal waiting period for that token passed since your last deposit? If not, the withdrawal is blocked until it has.
+  </Step>
+  <Step title="Balance check">
+    Does your account hold at least the amount you are requesting? Your withdrawal cannot exceed your available balance.
+  </Step>
+  <Step title="Platform liquidity check">
+    Does the platform have enough of that token freely available right now? Even if your balance is sufficient, some tokens may be temporarily less liquid — for example, if collateral is tied up backing open positions elsewhere in the system. This safety check ensures withdrawals are only ever paid from funds that are genuinely free.
+  </Step>
+</Steps>
+
+If all three checks pass, the funds are sent to your wallet immediately.
+
+## Fees and Internal Balance Movements
+
+Not every balance change in your account represents a deposit or withdrawal of tokens. Trading fees, for instance, are deducted from your account balance and routed to the Insurance Fund and Treasury as **internal bookkeeping entries** — no token actually leaves the platform until those fees are periodically distributed. Similarly, liquidation fees are credited internally to the keeper who performed the liquidation rather than flowing out as a withdrawal.
+
+<Tip>
+  Think of your Perpetra balance as an account ledger. Deposits and withdrawals move tokens across the platform boundary; everything else — fees, funding payments, P&L — is an internal entry that updates your ledger without a corresponding on-chain transfer at that moment.
+</Tip>
+
+See [Fees](/trading/fees) for a full breakdown of how trading and liquidation fees are calculated and distributed.

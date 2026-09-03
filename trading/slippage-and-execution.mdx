@@ -1,0 +1,78 @@
+---
+title: "Slippage Tolerance and Order Execution on Perpetra"
+sidebarTitle: "Slippage & Execution"
+description: "Understand how Perpetra's slippage tolerance check works, what causes a rejected match, and how to tune your settings for any market."
+---
+
+When you place an order on Perpetra, you set two things that together define your price boundaries: a **limit price** and a **max slippage tolerance**. These work differently from slippage on most other platforms, so it's worth understanding exactly what each one does before you trade.
+
+## What slippage tolerance actually checks
+
+On most DEXes, slippage measures how far your actual fill price ended up from the quoted price. On Perpetra, slippage tolerance is a **pre-execution check** that happens at the moment your order is matched.
+
+Because Perpetra uses off-chain order matching with on-chain settlement, there is always a small gap between when you sign an order and when it's actually processed. During that window — sometimes milliseconds, sometimes longer during busy markets — the oracle price can move. Max slippage tolerance gives you control over how much oracle movement you're willing to accept before you'd prefer the order not execute at all.
+
+At the moment of matching, Perpetra's off-chain engine runs this check:
+
+```
+diffBps = |oraclePrice - limitPrice| * 10_000 / limitPrice
+```
+
+If `diffBps` exceeds your `maxSlippageBps`, the match is **rejected**. If it falls within your tolerance, the match proceeds.
+
+<Note>
+  This check compares the **oracle price** (the live index feed) against your **limit price** — not your expected fill price against your actual fill price. It measures how much the market has moved since you set your price, not the quality of your execution.
+</Note>
+
+## How limit orders and market orders fill
+
+<Tabs>
+  <Tab title="Market Orders">
+    A market order fills against the **best available price on the opposite side** of the orderbook at the time of matching. You don't specify a target price — you're accepting whatever the top of book offers. Your slippage tolerance still applies: if the oracle has moved significantly past your implied limit by the time the order is processed, the match is rejected to prevent you from executing at a materially worse price than you intended.
+  </Tab>
+  <Tab title="Limit Orders">
+    A limit order fills **at or better than your stated limit price**. The limit price is the worst price you'll accept. If the oracle price at match time is within your slippage tolerance of that limit price, the order executes. If the market has moved beyond your tolerance, the match is rejected and you can resubmit.
+  </Tab>
+</Tabs>
+
+## The limit price as a hard boundary
+
+Your slippage tolerance works alongside a separate, absolute constraint from your limit price itself:
+
+- On a **long**, if the oracle price is above your limit price at match time, the order is rejected — regardless of your slippage setting.
+- On a **short**, if the oracle price is below your limit price at match time, the order is rejected — regardless of your slippage setting.
+
+This means your limit price is always your absolute worst case. Slippage tolerance only controls how close to that worst case you're willing to let the market get before you'd rather not trade at all.
+
+## What happens when a match is rejected
+
+If the slippage check fails, your order is **not executed**. No gas is spent, no position is opened, and no collateral is moved. Your signed order simply isn't matched in that round. You can review the market conditions and resubmit the order — either with an updated limit price that reflects where the market currently is, or with a wider slippage tolerance if you're still comfortable with the current oracle price.
+
+## Setting your slippage tolerance
+
+<Accordion title="Tight tolerance (e.g. 10–25 bps)">
+  Best when you have a precise entry price in mind and would rather miss the trade than execute materially off-target. More likely to result in a rejected match during volatile or fast-moving conditions. Use this when the exact price matters more than getting filled.
+</Accordion>
+
+<Accordion title="Moderate tolerance (e.g. 50–100 bps)">
+  A reasonable default for most market conditions. Gives the matching engine enough room to work with normal oracle fluctuations without exposing you to large adverse moves. Suitable for most limit order placements in liquid markets.
+</Accordion>
+
+<Accordion title="Wide tolerance (e.g. 100+ bps)">
+  Maximizes your chance of getting filled, even when the oracle is moving quickly. Appropriate when execution certainty matters more than price precision — for example, when using market orders in volatile conditions or exiting a position urgently. Accept that you may fill at a price further from your target.
+</Accordion>
+
+<Tip>
+  In fast-moving markets, tightening your slippage tolerance can result in repeated rejections that leave you on the sideline. If you need to execute quickly — for example, to reduce exposure during a sharp move — consider widening your tolerance or using a market order, and accept that some price uncertainty is the trade-off for higher fill probability.
+</Tip>
+
+## Summary
+
+<CardGroup cols={2}>
+  <Card title="Tighter Slippage" icon="lock">
+    More price certainty. Higher chance of rejection during volatile conditions. Use when the exact entry price matters.
+  </Card>
+  <Card title="Wider Slippage" icon="arrow-right-arrow-left">
+    Higher fill probability. More oracle movement accepted before rejection. Use when getting filled is the priority.
+  </Card>
+</CardGroup>
